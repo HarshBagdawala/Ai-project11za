@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 
+export const maxDuration = 10
+export const dynamic = 'force-dynamic'
+
 // GET — Webhook verification (11za/Meta)
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl

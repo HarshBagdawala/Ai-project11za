@@ -6,6 +6,7 @@ import { downloadMediaAsBase64, sendMatchedProducts, sendTextMessage } from '@/l
 import { createPaymentLink } from '@/lib/razorpay'
 
 export const maxDuration = 30
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   const { mediaId, from } = await req.json()
