@@ -3,9 +3,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = {
   title: 'Visual Search Bot - Product Discovery',
-  description: 'AI-powered product visual search for WhatsApp',
-  charset: 'UTF-8',
-  viewport: 'width=device-width, initial-scale=1'
+  description: 'AI-powered product visual search for WhatsApp'
 }
 
 export default function RootLayout({
