@@ -33,7 +33,6 @@ export async function downloadMediaAsBase64(mediaId: string): Promise<string> {
     const { url } = await urlRes.json()
 
     // Step 2: Download image bytes
-    const apiKey = process.env.ELEVEN_ZA_API_KEY
     const imgRes = await fetch(url, {
       headers: { 
         'Authorization': `Bearer ${apiKey}` 
