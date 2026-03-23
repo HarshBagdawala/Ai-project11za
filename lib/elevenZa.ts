@@ -13,6 +13,8 @@ const headers = () => {
   const apiKey = process.env.ELEVEN_ZA_API_KEY
   if (!apiKey) {
     console.error('❌ ELEVEN_ZA_API_KEY is missing!')
+  } else {
+    console.log(`ℹ️ ELEVEN_ZA_API_KEY length: ${apiKey.length}`)
   }
   return {
     'Authorization': `Bearer ${apiKey}`,
