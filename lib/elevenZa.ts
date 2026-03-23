@@ -5,8 +5,11 @@ const getBaseUrl = () => {
   const phoneId = process.env.ELEVEN_ZA_PHONE_NUMBER_ID
   if (!phoneId) {
     console.error('❌ ELEVEN_ZA_PHONE_NUMBER_ID is missing!')
+  } else {
+    console.log(`ℹ️ ELEVEN_ZA_PHONE_NUMBER_ID: ${phoneId}`)
   }
-  return `https://graph.facebook.com/v19.0/${phoneId}/messages`
+  // Try 11za specific endpoint if Meta direct fails
+  return `https://app.11za.in/apis/template/sendTemplate`
 }
 
 const headers = () => {
@@ -28,13 +31,13 @@ export async function downloadMediaAsBase64(mediaId: string): Promise<string> {
     // Step 1: Get media URL
     const apiKey = process.env.ELEVEN_ZA_API_KEY
     if (!apiKey) console.error('❌ ELEVEN_ZA_API_KEY is missing!')
-    
+
     const urlRes = await fetch(
       `https://graph.facebook.com/v19.0/${mediaId}`,
-      { 
-        headers: { 
-          'Authorization': `Bearer ${apiKey}` 
-        } 
+      {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        }
       }
     )
     if (!urlRes.ok) throw new Error('Failed to get media URL from 11za')
@@ -42,8 +45,8 @@ export async function downloadMediaAsBase64(mediaId: string): Promise<string> {
 
     // Step 2: Download image bytes
     const imgRes = await fetch(url, {
-      headers: { 
-        'Authorization': `Bearer ${apiKey}` 
+      headers: {
+        'Authorization': `Bearer ${apiKey}`
       }
     })
     if (!imgRes.ok) throw new Error('Failed to download media from 11za')
