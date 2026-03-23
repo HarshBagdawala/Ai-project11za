@@ -21,12 +21,15 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
+    console.log('📨 Incoming Webhook Payload:', JSON.stringify(body, null, 2))
+
     const entry = body?.entry?.[0]
     const changes = entry?.changes?.[0]
     const value = changes?.value
     const messages = value?.messages
 
     if (!messages || messages.length === 0) {
+      console.log('ℹ️ No messages in payload')
       return NextResponse.json({ ok: true })
     }
 
@@ -40,11 +43,17 @@ export async function POST(req: NextRequest) {
 
       // Fire search pipeline (non-blocking)
       const appUrl = process.env.NEXT_PUBLIC_APP_URL
+      if (!appUrl) {
+        console.error('❌ NEXT_PUBLIC_APP_URL is not set!')
+        return NextResponse.json({ ok: true })
+      }
+
+      console.log(`🚀 Triggering search pipeline: ${appUrl}/api/search`)
       fetch(`${appUrl}/api/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mediaId, from })
-      }).catch(console.error)
+      }).catch(err => console.error('❌ Pipeline trigger failed:', err))
 
     } else if (message.type === 'text') {
       // Send instructions

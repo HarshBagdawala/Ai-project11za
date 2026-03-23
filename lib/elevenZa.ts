@@ -3,20 +3,29 @@ import { delay } from './utils'
 
 const BASE_URL = 'https://api.11za.in/messages'
 
-const headers = () => ({
-  'Authorization': `Bearer ${process.env.ELEVEN_ZA_API_KEY}`,
-  'Content-Type': 'application/json'
-})
+const headers = () => {
+  const apiKey = process.env.ELEVEN_ZA_API_KEY
+  if (!apiKey) {
+    console.error('❌ ELEVEN_ZA_API_KEY is missing!')
+  }
+  return {
+    'Authorization': `Bearer ${apiKey}`,
+    'Content-Type': 'application/json'
+  }
+}
 
 // Download media from 11za
 export async function downloadMediaAsBase64(mediaId: string): Promise<string> {
   try {
     // Step 1: Get media URL
+    const apiKey = process.env.ELEVEN_ZA_API_KEY
+    if (!apiKey) console.error('❌ ELEVEN_ZA_API_KEY is missing!')
+    
     const urlRes = await fetch(
       `https://graph.facebook.com/v19.0/${mediaId}`,
       { 
         headers: { 
-          'Authorization': `Bearer ${process.env.ELEVEN_ZA_API_KEY}` 
+          'Authorization': `Bearer ${apiKey}` 
         } 
       }
     )
@@ -24,9 +33,10 @@ export async function downloadMediaAsBase64(mediaId: string): Promise<string> {
     const { url } = await urlRes.json()
 
     // Step 2: Download image bytes
+    const apiKey = process.env.ELEVEN_ZA_API_KEY
     const imgRes = await fetch(url, {
       headers: { 
-        'Authorization': `Bearer ${process.env.ELEVEN_ZA_API_KEY}` 
+        'Authorization': `Bearer ${apiKey}` 
       }
     })
     if (!imgRes.ok) throw new Error('Failed to download media from 11za')
