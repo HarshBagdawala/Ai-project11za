@@ -23,50 +23,69 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     console.log('📨 Incoming Webhook Payload:', JSON.stringify(body, null, 2))
 
-    const entry = body?.entry?.[0]
-    const changes = entry?.changes?.[0]
-    const value = changes?.value
-    const messages = value?.messages
+    let from: string | undefined
+    let type: string | undefined
+    let mediaId: string | undefined
+    let text: string | undefined
 
-    if (!messages || messages.length === 0) {
-      console.log('ℹ️ No messages in payload')
+    // 1. Try 11za Direct Format (as seen in logs)
+    if (body.from && body.content) {
+      from = body.from
+      type = body.content.contentType
+      text = body.content.text
+      mediaId = body.content.mediaId || body.content.image?.id
+    } 
+    // 2. Try Standard Meta Cloud API Format
+    else {
+      const entry = body?.entry?.[0]
+      const changes = entry?.changes?.[0]
+      const value = changes?.value
+      const message = value?.messages?.[0]
+
+      if (message) {
+        from = message.from
+        type = message.type
+        text = message.text?.body
+        mediaId = message.image?.id
+      }
+    }
+
+    if (!from || !type) {
+      console.log('ℹ️ No valid message found in payload')
       return NextResponse.json({ ok: true })
     }
 
-    const message = messages[0]
-    const from = message.from
+    if (type === 'image') {
+      if (!mediaId) {
+        console.error('❌ Image message received but no mediaId found')
+        return NextResponse.json({ ok: true })
+      }
 
-    if (message.type === 'image') {
-      const mediaId = message.image?.id
-
-      if (!mediaId) return NextResponse.json({ ok: true })
-
-      // Fire search pipeline (non-blocking)
       const appUrl = process.env.NEXT_PUBLIC_APP_URL
       if (!appUrl) {
         console.error('❌ NEXT_PUBLIC_APP_URL is not set!')
         return NextResponse.json({ ok: true })
       }
 
-      console.log(`🚀 Triggering search pipeline: ${appUrl}/api/search`)
+      console.log(`🚀 Triggering search pipeline for ${from}: ${appUrl}/api/search`)
       fetch(`${appUrl}/api/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mediaId, from })
       }).catch(err => console.error('❌ Pipeline trigger failed:', err))
 
-    } else if (message.type === 'text') {
-      // Send instructions
+    } else if (type === 'text') {
+      console.log(`💬 Text message from ${from}: ${text}`)
       const { sendTextMessage } = await import('@/lib/elevenZa')
       await sendTextMessage(
         from,
         '📸 Namaste! Kisi bhi product ki *photo bhejiye* aur main aapko similar products dhundh dunga!\n\n_Bas photo send karo — baaki kaam mera!_ ✨'
-      )
+      ).catch(err => console.error('❌ Failed to send welcome message:', err))
     }
 
     return NextResponse.json({ ok: true })
   } catch (error) {
     console.error('Webhook error:', error)
-    return NextResponse.json({ ok: true }) // Always 200 to 11za
+    return NextResponse.json({ ok: true })
   }
 }
