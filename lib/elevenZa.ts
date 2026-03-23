@@ -1,55 +1,28 @@
 import type { ProductMatch } from '@/types'
 import { delay } from './utils'
 
-const getBaseUrl = () => {
-  const phoneId = process.env.ELEVEN_ZA_PHONE_NUMBER_ID
-  if (!phoneId) {
-    console.error('❌ ELEVEN_ZA_PHONE_NUMBER_ID is missing!')
-  } else {
-    console.log(`ℹ️ ELEVEN_ZA_PHONE_NUMBER_ID: ${phoneId}`)
-  }
-  // Try 11za specific endpoint if Meta direct fails
-  return `https://app.11za.in/apis/template/sendTemplate`
-}
+const BASE_URL = 'https://api.11za.in/apis/sendMessage/sendMessages'
 
-const headers = () => {
+const getAuthToken = () => {
   const apiKey = process.env.ELEVEN_ZA_API_KEY
-  if (!apiKey) {
-    console.error('❌ ELEVEN_ZA_API_KEY is missing!')
-  } else {
-    console.log(`ℹ️ ELEVEN_ZA_API_KEY length: ${apiKey.length}`)
-  }
-  return {
-    'Authorization': `Bearer ${apiKey}`,
-    'Content-Type': 'application/json'
-  }
+  if (!apiKey) console.error('❌ ELEVEN_ZA_API_KEY is missing!')
+  return apiKey || ''
 }
 
 // Download media from 11za
 export async function downloadMediaAsBase64(mediaId: string): Promise<string> {
   try {
-    // Step 1: Get media URL
-    const apiKey = process.env.ELEVEN_ZA_API_KEY
-    if (!apiKey) console.error('❌ ELEVEN_ZA_API_KEY is missing!')
-
-    const urlRes = await fetch(
-      `https://graph.facebook.com/v19.0/${mediaId}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${apiKey}`
-        }
-      }
-    )
-    if (!urlRes.ok) throw new Error('Failed to get media URL from 11za')
+    const apiKey = getAuthToken()
+    const urlRes = await fetch(`https://graph.facebook.com/v19.0/${mediaId}`, {
+      headers: { 'Authorization': `Bearer ${apiKey}` }
+    })
+    if (!urlRes.ok) throw new Error(`Meta API error: ${urlRes.statusText}`)
     const { url } = await urlRes.json()
 
-    // Step 2: Download image bytes
     const imgRes = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${apiKey}`
-      }
+      headers: { 'Authorization': `Bearer ${apiKey}` }
     })
-    if (!imgRes.ok) throw new Error('Failed to download media from 11za')
+    if (!imgRes.ok) throw new Error(`Failed to download media from Meta: ${imgRes.statusText}`)
 
     const buffer = await imgRes.arrayBuffer()
     return Buffer.from(buffer).toString('base64')
@@ -62,16 +35,18 @@ export async function downloadMediaAsBase64(mediaId: string): Promise<string> {
 // Send a text message
 export async function sendTextMessage(to: string, text: string): Promise<void> {
   try {
-    const response = await fetch(getBaseUrl(), {
+    const payload = {
+      sendto: to,
+      authToken: getAuthToken(),
+      originWebsite: process.env.NEXT_PUBLIC_APP_URL || '',
+      contentType: 'text',
+      text: text
+    }
+
+    const response = await fetch(BASE_URL, {
       method: 'POST',
-      headers: headers(),
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to,
-        type: 'text',
-        text: { preview_url: false, body: text }
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     })
 
     if (!response.ok) {
@@ -90,16 +65,19 @@ export async function sendProductImage(
   caption: string
 ): Promise<void> {
   try {
-    const response = await fetch(getBaseUrl(), {
+    const payload = {
+      sendto: to,
+      authToken: getAuthToken(),
+      originWebsite: process.env.NEXT_PUBLIC_APP_URL || '',
+      contentType: 'image',
+      mediaUrl: imageUrl,
+      text: caption
+    }
+
+    const response = await fetch(BASE_URL, {
       method: 'POST',
-      headers: headers(),
-      body: JSON.stringify({
-        messaging_product: 'whatsapp',
-        recipient_type: 'individual',
-        to,
-        type: 'image',
-        image: { link: imageUrl, caption }
-      })
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
     })
 
     if (!response.ok) {
