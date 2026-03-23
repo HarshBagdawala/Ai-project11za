@@ -1,7 +1,13 @@
 import type { ProductMatch } from '@/types'
 import { delay } from './utils'
 
-const BASE_URL = 'https://api.11za.in/messages'
+const getBaseUrl = () => {
+  const phoneId = process.env.ELEVEN_ZA_PHONE_NUMBER_ID
+  if (!phoneId) {
+    console.error('❌ ELEVEN_ZA_PHONE_NUMBER_ID is missing!')
+  }
+  return `https://graph.facebook.com/v19.0/${phoneId}/messages`
+}
 
 const headers = () => {
   const apiKey = process.env.ELEVEN_ZA_API_KEY
@@ -51,7 +57,7 @@ export async function downloadMediaAsBase64(mediaId: string): Promise<string> {
 // Send a text message
 export async function sendTextMessage(to: string, text: string): Promise<void> {
   try {
-    const response = await fetch(BASE_URL, {
+    const response = await fetch(getBaseUrl(), {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify({
@@ -79,7 +85,7 @@ export async function sendProductImage(
   caption: string
 ): Promise<void> {
   try {
-    const response = await fetch(BASE_URL, {
+    const response = await fetch(getBaseUrl(), {
       method: 'POST',
       headers: headers(),
       body: JSON.stringify({
