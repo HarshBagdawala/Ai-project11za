@@ -2,8 +2,7 @@ import { NextResponse } from 'next/server'
 import { analyzeProductImage, generateFriendlyMessage } from '@/lib/groq'
 import { generateEmbedding, tagsToEmbeddingText } from '@/lib/mistral'
 import { searchSimilarProducts, saveSearchLog } from '@/lib/supabase'
-import { downloadMediaAsBase64, sendMatchedProducts, sendGoogleProducts, sendTextMessage } from '@/lib/elevenZa'
-import { searchGoogleProducts } from '@/lib/serper'
+import { downloadMediaAsBase64, sendMatchedProducts, sendTextMessage } from '@/lib/elevenZa'
 import { createPaymentLink } from '@/lib/razorpay'
 
 export const maxDuration = 30
@@ -31,34 +30,26 @@ export async function POST(req: Request) {
     console.log('🔎 Searching Supabase pgvector...')
     const products = await searchSimilarProducts(embedding, 3)
 
-    // Step 5: Google search via Serper
-    console.log('🌐 Searching Google via Serper API...')
-    const gProducts = await searchGoogleProducts(tags)
+    // Generate smart Google search query as fallback/extra options
+    const searchQuery = `${tags.color || ''} ${tags.style && tags.style !== 'other' ? tags.style : ''} ${tags.type || ''}`.replace(/\s+/g, ' ').trim()
+    const googleSearchUrl = `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(searchQuery || 'product')}`
 
-    if ((!products || products.length === 0) && (!gProducts || gProducts.length === 0)) {
+    if (!products || products.length === 0) {
       await sendTextMessage(
         from,
-        '😔 Sorry! Aapki photo se match karta koi bhi product failhal available nahi hai.\n\nKoi aur photo try karein? 📸'
+        `😔 Sorry! Hamare store mein aapki photo se match karta product abhi available nahi hai.\n\nLekin Google par aap iske jaise similar products yahan dekh sakte hain:\n🛍️ ${googleSearchUrl}\n\nKoi aur photo try karein? 📸`
       ).catch(err => console.error('Failed to send no-match message:', err))
       
       return NextResponse.json({ ok: true, found: 0 })
     }
 
-    // Step 6: Generate payment links & send DB matches
-    if (products && products.length > 0) {
-      console.log('💳 Generating payment links...')
-      const paymentLinks = await Promise.all(products.map(createPaymentLink))
-      const introMessage = await generateFriendlyMessage(tags, products.length)
+    // Step 5: Generate payment links & send DB matches
+    console.log('💳 Generating payment links...')
+    const paymentLinks = await Promise.all(products.map(createPaymentLink))
+    const introMessage = await generateFriendlyMessage(tags, products.length)
       
-      console.log('📤 Sending Supabase products to customer...')
-      await sendMatchedProducts(from, products, introMessage, paymentLinks)
-    }
-
-    // Step 7: Send Google matches
-    if (gProducts && gProducts.length > 0) {
-      console.log('📤 Sending Google products to customer...')
-      await sendGoogleProducts(from, gProducts)
-    }
+    console.log('📤 Sending products to customer...')
+    await sendMatchedProducts(from, products, introMessage, paymentLinks, googleSearchUrl)
 
     // Step 8: Log to Supabase
     await saveSearchLog({
