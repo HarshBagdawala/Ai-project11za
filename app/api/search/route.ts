@@ -30,10 +30,14 @@ export async function POST(req: Request) {
     console.log('🔎 Searching Supabase pgvector...')
     const products = await searchSimilarProducts(embedding, 3)
 
+    // Generate smart Google search query as fallback/extra options
+    const searchQuery = `${tags.color || ''} ${tags.style && tags.style !== 'other' ? tags.style : ''} ${tags.type || ''}`.replace(/\s+/g, ' ').trim()
+    const googleSearchUrl = `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(searchQuery || 'product')}`
+
     if (!products || products.length === 0) {
       await sendTextMessage(
         from,
-        '😔 Sorry! Aapki photo se match karta product abhi available nahi hai.\n\nKoi aur photo try karein? 📸'
+        `😔 Sorry! Hamare store mein aapki photo se match karta product abhi available nahi hai.\n\nLekin Google par aap iske jaise similar products yahan dekh sakte hain:\n🛍️ ${googleSearchUrl}\n\nKoi aur photo try karein? 📸`
       ).catch(err => console.error('Failed to send no-match message:', err))
       
       return NextResponse.json({ ok: true, found: 0 })
@@ -48,7 +52,7 @@ export async function POST(req: Request) {
 
     // Step 7: Send products on WhatsApp
     console.log('📤 Sending products to customer...')
-    await sendMatchedProducts(from, products, introMessage, paymentLinks)
+    await sendMatchedProducts(from, products, introMessage, paymentLinks, googleSearchUrl)
 
     // Step 8: Log to Supabase
     await saveSearchLog({

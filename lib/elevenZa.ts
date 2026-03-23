@@ -108,7 +108,8 @@ export async function sendMatchedProducts(
   to: string,
   products: ProductMatch[],
   introMessage: string,
-  paymentLinks: string[]
+  paymentLinks: string[],
+  googleSearchUrl?: string
 ): Promise<void> {
   try {
     // 1. Intro text
@@ -133,7 +134,12 @@ export async function sendMatchedProducts(
     }
 
     // 3. Footer
-    await sendTextMessage(to, '✨ Koi aur product dhundna ho toh photo bhejiye!')
+    let footerText = '✨ Koi aur product dhundna ho toh photo bhejiye!'
+    if (googleSearchUrl) {
+      footerText = `🌐 Google par aur bhi similar products dekhne ke liye yahan click karein:\n🛍️ ${googleSearchUrl}\n\n${footerText}`
+    }
+    
+    await sendTextMessage(to, footerText)
   } catch (error) {
     console.error('Error sending matched products:', error)
     throw error
