@@ -108,8 +108,7 @@ export async function sendMatchedProducts(
   to: string,
   products: ProductMatch[],
   introMessage: string,
-  paymentLinks: string[],
-  googleSearchUrl?: string
+  paymentLinks: string[]
 ): Promise<void> {
   try {
     // 1. Intro text
@@ -134,14 +133,47 @@ export async function sendMatchedProducts(
     }
 
     // 3. Footer
-    let footerText = '✨ Koi aur product dhundna ho toh photo bhejiye!'
-    if (googleSearchUrl) {
-      footerText = `🌐 Google par aur bhi similar products dekhne ke liye yahan click karein:\n🛍️ ${googleSearchUrl}\n\n${footerText}`
-    }
-    
-    await sendTextMessage(to, footerText)
+    await sendTextMessage(to, '✨ Koi aur product dhundna ho toh photo bhejiye!')
   } catch (error) {
     console.error('Error sending matched products:', error)
+    throw error
+  }
+}
+
+// Send Google Products 
+import type { GoogleProduct } from './serper'
+
+export async function sendGoogleProducts(
+  to: string,
+  products: GoogleProduct[]
+): Promise<void> {
+  if (!products || products.length === 0) return
+
+  try {
+    await sendTextMessage(to, '🌐 Google se humein ye best matching products mile hain:')
+    await delay(800)
+
+    for (let i = 0; i < products.length; i++) {
+      const p = products[i]
+      const emoji = ['🥇', '🥈'][i] || '🛍️'
+      const caption = [
+        `${emoji} *${p.title}*`,
+        p.price ? `💰 Price: ${p.price}` : '',
+        p.source ? `🏬 Store: ${p.source}` : '',
+        '',
+        '🛒 Direct Link:',
+        p.link
+      ].filter(Boolean).join('\n')
+
+      if (p.imageUrl) {
+        await sendProductImage(to, p.imageUrl, caption)
+      } else {
+        await sendTextMessage(to, caption)
+      }
+      await delay(600)
+    }
+  } catch (error) {
+    console.error('Error sending google matched products:', error)
     throw error
   }
 }
