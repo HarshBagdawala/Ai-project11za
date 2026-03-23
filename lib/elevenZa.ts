@@ -38,7 +38,7 @@ export async function sendTextMessage(to: string, text: string): Promise<void> {
     const payload = {
       sendto: to,
       authToken: getAuthToken(),
-      originWebsite: process.env.NEXT_PUBLIC_APP_URL || '',
+      originWebsite: 'https://11za.com/',
       contentType: 'text',
       text: text
     }
@@ -50,7 +50,14 @@ export async function sendTextMessage(to: string, text: string): Promise<void> {
     })
 
     if (!response.ok) {
-      throw new Error(`11za API error: ${response.statusText}`)
+      const errorData = await response.text()
+      throw new Error(`11za API error: ${response.status} ${errorData}`)
+    }
+    try {
+      const result = await response.json()
+      console.log(`✅ Message sent to ${to}:`, result)
+    } catch {
+      console.log(`✅ Message sent to ${to} (could not parse response)`)
     }
   } catch (error) {
     console.error(`Failed to send message to ${to}:`, error)
@@ -68,7 +75,7 @@ export async function sendProductImage(
     const payload = {
       sendto: to,
       authToken: getAuthToken(),
-      originWebsite: process.env.NEXT_PUBLIC_APP_URL || '',
+      originWebsite: 'https://11za.com/',
       contentType: 'image',
       mediaUrl: imageUrl,
       text: caption
@@ -81,7 +88,14 @@ export async function sendProductImage(
     })
 
     if (!response.ok) {
-      throw new Error(`11za API error: ${response.statusText}`)
+      const errorData = await response.text()
+      throw new Error(`11za API error: ${response.status} ${errorData}`)
+    }
+    try {
+      const result = await response.json()
+      console.log(`✅ Image sent to ${to}:`, result)
+    } catch {
+      console.log(`✅ Image sent to ${to} (could not parse response)`)
     }
   } catch (error) {
     console.error(`Failed to send image to ${to}:`, error)
