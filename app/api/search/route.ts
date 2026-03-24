@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { analyzeProductImage } from '@/lib/groq'
 import { downloadMediaAsBase64, sendTextMessage, sendUrlMessage } from '@/lib/elevenZa'
-import { searchProductsWithGemini } from '@/lib/gemini'
+import { searchProductsWithGroq } from '@/lib/groqSearch'
 import { delay } from '@/lib/utils'
 
 export const maxDuration = 30
@@ -20,11 +20,11 @@ export async function POST(req: Request) {
     const tags = await analyzeProductImage(imageBase64)
     console.log('Tags:', tags)
 
-    // Step 3: Web Search for URLs via Gemini
-    console.log('🤖 Asking Gemini to search for exact products online...')
-    const geminiUrls = await searchProductsWithGemini(tags)
+    // Step 3: Web Search for URLs via Groq
+    console.log('🤖 Asking Groq to search for exact products online...')
+    const searchUrls = await searchProductsWithGroq(tags)
 
-    if (!geminiUrls || geminiUrls.length === 0) {
+    if (!searchUrls || searchUrls.length === 0) {
       await sendTextMessage(
         from,
         '😔 Sorry! Right now, no exact product (web URL) matching this photo could be found on the internet.\n\nTry another photo? 📸'
@@ -33,26 +33,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, found: 0 })
     }
 
-    // Step 4: Send Gemini Web URL matches using sendUrlMessage
-    console.log(`📤 Sending ${geminiUrls.length} Gemini URL(s) back to customer...`)
-    await sendTextMessage(from, '🌐 Web par humein ye exactly matching product links mile hain:')
+    // Step 4: Send Web URL matches using sendUrlMessage
+    console.log(`📤 Sending ${searchUrls.length} URL(s) back to customer...`)
+    await sendTextMessage(from, '🌐 We have found these exactly matching product links on the web:')
     await delay(800)
-    for (const url of geminiUrls) {
+    for (const url of searchUrls) {
       await sendUrlMessage(from, url)
       await delay(600)
     }
 
     // Send closing footer
-    await sendTextMessage(from, '✨ Koi aur product dhundna ho toh uski photo bhejiye!')
+    await sendTextMessage(from, '✨ Send a photo if you want to find another product!')
 
     console.log('✅ Search pipeline complete!')
-    return NextResponse.json({ ok: true, found: geminiUrls.length })
+    return NextResponse.json({ ok: true, found: searchUrls.length })
 
   } catch (error) {
     console.error('Search pipeline error:', error)
     await sendTextMessage(
       from,
-      '⚠️ Kuch technical issue aa gaya. Thodi der mein dobara try karein!'
+      '⚠️ Some technical issue occurred. Please try again in a little while!'
     ).catch(() => { })
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
   }
