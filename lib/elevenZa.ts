@@ -65,6 +65,39 @@ export async function sendTextMessage(to: string, text: string): Promise<void> {
   }
 }
 
+// Send a URL message
+export async function sendUrlMessage(to: string, url: string): Promise<void> {
+  try {
+    const payload = {
+      sendto: to,
+      authToken: getAuthToken(),
+      originWebsite: 'https://11za.com/',
+      contentType: 'url',
+      url: url
+    }
+
+    const response = await fetch(BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.text()
+      throw new Error(`11za API error: ${response.status} ${errorData}`)
+    }
+    try {
+      const result = await response.json()
+      console.log(`✅ URL sent to ${to}:`, result)
+    } catch {
+      console.log(`✅ URL sent to ${to} (could not parse response)`)
+    }
+  } catch (error) {
+    console.error(`Failed to send URL to ${to}:`, error)
+    throw error
+  }
+}
+
 // Send a product image with caption
 export async function sendProductImage(
   to: string,
@@ -108,8 +141,7 @@ export async function sendMatchedProducts(
   to: string,
   products: ProductMatch[],
   introMessage: string,
-  paymentLinks: string[],
-  googleSearchUrl?: string
+  paymentLinks: string[]
 ): Promise<void> {
   try {
     // 1. Intro text
@@ -133,13 +165,6 @@ export async function sendMatchedProducts(
       await delay(600)
     }
 
-    // 3. Footer
-    let footerText = '✨ Koi aur product dhundna ho toh photo bhejiye!'
-    if (googleSearchUrl) {
-      footerText = `🌐 Google par aur bhi similar products dekhne ke liye yahan click karein:\n🛍️ ${googleSearchUrl}\n\n${footerText}`
-    }
-    
-    await sendTextMessage(to, footerText)
   } catch (error) {
     console.error('Error sending matched products:', error)
     throw error

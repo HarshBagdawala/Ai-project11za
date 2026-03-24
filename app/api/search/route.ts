@@ -2,8 +2,10 @@ import { NextResponse } from 'next/server'
 import { analyzeProductImage, generateFriendlyMessage } from '@/lib/groq'
 import { generateEmbedding, tagsToEmbeddingText } from '@/lib/mistral'
 import { searchSimilarProducts, saveSearchLog } from '@/lib/supabase'
-import { downloadMediaAsBase64, sendMatchedProducts, sendTextMessage } from '@/lib/elevenZa'
+import { downloadMediaAsBase64, sendMatchedProducts, sendTextMessage, sendUrlMessage } from '@/lib/elevenZa'
+import { searchProductsWithGemini } from '@/lib/gemini'
 import { createPaymentLink } from '@/lib/razorpay'
+import { delay } from '@/lib/utils'
 
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
@@ -30,26 +32,42 @@ export async function POST(req: Request) {
     console.log('🔎 Searching Supabase pgvector...')
     const products = await searchSimilarProducts(embedding, 3)
 
-    // Generate smart Google search query as fallback/extra options
-    const searchQuery = `${tags.color || ''} ${tags.style && tags.style !== 'other' ? tags.style : ''} ${tags.type || ''}`.replace(/\s+/g, ' ').trim()
-    const googleSearchUrl = `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(searchQuery || 'product')}`
+    // Step 5: Gemini API Web Search for URLs
+    console.log('🤖 Asking Gemini to search for products online...')
+    const geminiUrls = await searchProductsWithGemini(tags)
 
-    if (!products || products.length === 0) {
+    if ((!products || products.length === 0) && (!geminiUrls || geminiUrls.length === 0)) {
       await sendTextMessage(
         from,
-        `😔 Sorry! Hamare store mein aapki photo se match karta product abhi available nahi hai.\n\nLekin Google par aap iske jaise similar products yahan dekh sakte hain:\n🛍️ ${googleSearchUrl}\n\nKoi aur photo try karein? 📸`
+        '😔 Sorry! Hamare store aur web par is waqt is photo se match karta kuch nahi mila.\n\nKoi aur photo try karein? 📸'
       ).catch(err => console.error('Failed to send no-match message:', err))
       
       return NextResponse.json({ ok: true, found: 0 })
     }
 
-    // Step 5: Generate payment links & send DB matches
-    console.log('💳 Generating payment links...')
-    const paymentLinks = await Promise.all(products.map(createPaymentLink))
-    const introMessage = await generateFriendlyMessage(tags, products.length)
-      
-    console.log('📤 Sending products to customer...')
-    await sendMatchedProducts(from, products, introMessage, paymentLinks, googleSearchUrl)
+    // Step 6: Generate payment links & send DB matches
+    if (products && products.length > 0) {
+      console.log('💳 Generating payment links...')
+      const paymentLinks = await Promise.all(products.map(createPaymentLink))
+      const introMessage = await generateFriendlyMessage(tags, products.length)
+        
+      console.log('📤 Sending Supabase products to customer...')
+      await sendMatchedProducts(from, products, introMessage, paymentLinks)
+    }
+
+    // Step 7: Send Gemini Web URL matches using new sendUrlMessage
+    if (geminiUrls && geminiUrls.length > 0) {
+      console.log(`📤 Sending ${geminiUrls.length} Gemini URL(s)...`)
+      await sendTextMessage(from, '🌐 Web par humein ye best product search links mile hain:')
+      await delay(800)
+      for (const url of geminiUrls) {
+        await sendUrlMessage(from, url)
+        await delay(600)
+      }
+    }
+
+    // Send closing footer
+    await sendTextMessage(from, '✨ Koi aur product dhundna ho toh uski photo bhejiye!')
 
     // Step 8: Log to Supabase
     await saveSearchLog({
