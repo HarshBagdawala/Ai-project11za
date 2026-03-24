@@ -82,6 +82,11 @@ export async function POST(req: NextRequest) {
         body: JSON.stringify({ mediaId, from })
       }).catch(err => console.error('❌ Pipeline trigger failed:', err))
 
+      // Important: Vercel serverless freezes execution the moment Next.js returns the HTTP response.
+      // We must give the Node.js event pool ~1 second to negotiate TLS and flush the fetch() network request
+      // to the background `/api/search` worker before returning!
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
     } else if (type === 'text') {
       console.log(`💬 Text message from ${from}: ${text}`)
       const { sendTextMessage } = await import('@/lib/elevenZa')
