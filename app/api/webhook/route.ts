@@ -44,8 +44,16 @@ export async function POST(req: NextRequest) {
     else if (body.from && body.content) {
       from = body.from
       type = body.content.contentType
+      
+      // Handle the new 11za "media" -> "url" payload format
+      if (type === 'media' && body.content.media?.type === 'image') {
+        type = 'image' // map to internal "image" type
+        mediaId = body.content.media.url // pass the direct URL instead of graph API ID
+      } else {
+        mediaId = body.content.mediaId || body.content.image?.id
+      }
+      
       text = body.content.text
-      mediaId = body.content.mediaId || body.content.image?.id
     }
 
     if (!from || !type) {

@@ -9,20 +9,30 @@ const getAuthToken = () => {
   return apiKey || ''
 }
 
-// Download media from 11za
-export async function downloadMediaAsBase64(mediaId: string): Promise<string> {
+// Download media from 11za or Meta
+export async function downloadMediaAsBase64(mediaIdOrUrl: string): Promise<string> {
   try {
     const apiKey = getAuthToken()
-    const urlRes = await fetch(`https://graph.facebook.com/v19.0/${mediaId}`, {
-      headers: { 'Authorization': `Bearer ${apiKey}` }
-    })
-    if (!urlRes.ok) throw new Error(`Meta API error: ${urlRes.statusText}`)
-    const { url } = await urlRes.json()
+    let downloadUrl = mediaIdOrUrl
 
-    const imgRes = await fetch(url, {
-      headers: { 'Authorization': `Bearer ${apiKey}` }
-    })
-    if (!imgRes.ok) throw new Error(`Failed to download media from Meta: ${imgRes.statusText}`)
+    // If it's a Meta Media ID (doesn't start with http) fetch the true URL first
+    if (!mediaIdOrUrl.startsWith('http')) {
+      const urlRes = await fetch(`https://graph.facebook.com/v19.0/${mediaIdOrUrl}`, {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      })
+      if (!urlRes.ok) throw new Error(`Meta API error: ${urlRes.statusText}`)
+      const json = await urlRes.json()
+      downloadUrl = json.url
+    }
+
+    // Set authorization header if it's downloading deeply from Meta Cloud APIs
+    const headers: any = {}
+    if (downloadUrl.includes('facebook.com') || downloadUrl.includes('whatsapp.net')) {
+       headers['Authorization'] = `Bearer ${apiKey}`
+    }
+
+    const imgRes = await fetch(downloadUrl, { headers })
+    if (!imgRes.ok) throw new Error(`Failed to download media: ${imgRes.statusText}`)
 
     const buffer = await imgRes.arrayBuffer()
     return Buffer.from(buffer).toString('base64')
