@@ -28,26 +28,24 @@ export async function POST(req: NextRequest) {
     let mediaId: string | undefined
     let text: string | undefined
 
-    // 1. Try 11za Direct Format (as seen in logs)
-    if (body.from && body.content) {
+    // 1. Try Standard Meta Cloud API Format (Prioritize this to fix sender number routing)
+    const entry = body?.entry?.[0]
+    const changes = entry?.changes?.[0]
+    const value = changes?.value
+    const message = value?.messages?.[0]
+
+    if (message) {
+      from = message.from
+      type = message.type
+      text = message.text?.body
+      mediaId = message.image?.id
+    }
+    // 2. Fallback to 11za Direct Format
+    else if (body.from && body.content) {
       from = body.from
       type = body.content.contentType
       text = body.content.text
       mediaId = body.content.mediaId || body.content.image?.id
-    } 
-    // 2. Try Standard Meta Cloud API Format
-    else {
-      const entry = body?.entry?.[0]
-      const changes = entry?.changes?.[0]
-      const value = changes?.value
-      const message = value?.messages?.[0]
-
-      if (message) {
-        from = message.from
-        type = message.type
-        text = message.text?.body
-        mediaId = message.image?.id
-      }
     }
 
     if (!from || !type) {
