@@ -75,15 +75,15 @@ export async function sendTextMessage(to: string, text: string): Promise<void> {
   }
 }
 
-// Send a URL message
+// Send a URL message (as plain text since 11za doesn't support contentType: 'url')
 export async function sendUrlMessage(to: string, url: string): Promise<void> {
   try {
     const payload = {
       sendto: to,
       authToken: getAuthToken(),
       originWebsite: 'https://11za.com/',
-      contentType: 'url',
-      url: url
+      contentType: 'text',
+      text: url
     }
 
     const response = await fetch(BASE_URL, {
