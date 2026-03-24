@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { searchGoogleProducts } from './serper'
 import type { ImageTags } from '@/types'
 
 export async function searchProductsWithGemini(tags: ImageTags): Promise<string[]> {
@@ -31,15 +32,9 @@ Example: ["https://example-store.com/product/1", "https://example-store.com/prod
       result = await model.generateContent(prompt)
     } catch (apiError: any) {
       if (apiError?.status === 429 || apiError?.message?.includes('429') || apiError?.message?.includes('Quota exceeded')) {
-        console.warn('⚠️ Gemini 2.0 Flash quota exceeded. Falling back to Gemini 1.5 Flash...')
-        model = genAI.getGenerativeModel({
-          model: 'gemini-1.5-flash',
-          tools: [{
-            // @ts-ignore
-            googleSearch: {}
-          }]
-        })
-        result = await model.generateContent(prompt)
+        console.warn('⚠️ Gemini 2.0 Flash quota exceeded. Falling back to Serper Google Search...')
+        const serperResults = await searchGoogleProducts(tags)
+        return serperResults.map(p => p.link)
       } else {
         throw apiError;
       }
