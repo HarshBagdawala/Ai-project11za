@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
     else if (body.from && body.content) {
       from = body.from
       type = body.content.contentType
-      
+
       // Handle the new 11za "media" -> "url" payload format
       if (type === 'media' && body.content.media?.type === 'image') {
         type = 'image' // map to internal "image" type
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       } else {
         mediaId = body.content.mediaId || body.content.image?.id
       }
-      
+
       text = body.content.text
     }
 
@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       const { sendTextMessage } = await import('@/lib/elevenZa')
       await sendTextMessage(
         from,
-        '📸 Namaste! Kisi bhi product ki *photo bhejiye* aur main aapko similar products dhundh dunga!\n\n_Bas photo send karo — baaki kaam mera!_ ✨'
+        '📸 Namaste! Send a photo of any product, and I will find similar products for you!\n\n_Just send the photo — I handle the rest!_ ✨'
       ).catch(err => console.error('❌ Failed to send welcome message:', err))
     }
 
