@@ -1,6 +1,5 @@
 import Groq from 'groq-sdk'
 import type { ImageTags } from '@/types'
-import { searchGoogleProducts } from './serper'
 
 export async function searchProductsWithGroq(tags: ImageTags): Promise<string[]> {
   const apiKey = process.env.GROQ_PRODUCT_SEARCH_API_KEY
@@ -21,7 +20,7 @@ Example: ["https://example-store.com/product/1", "https://example-store.com/prod
 
   try {
     const response = await groq.chat.completions.create({
-      model: 'llama3-70b-8192',
+      model: 'llama-3.3-70b-versatile',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.1,
     })
@@ -35,13 +34,11 @@ Example: ["https://example-store.com/product/1", "https://example-store.com/prod
       if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
     
-    console.warn('⚠️ Groq returned invalid URLs or empty array. Falling back to Serper...')
-    const serperResults = await searchGoogleProducts(tags)
-    return serperResults.map((p: any) => p.link)
+    console.warn('⚠️ Groq returned invalid URLs or empty array.')
+    return []
     
   } catch (error) {
     console.error('Groq Search error:', error)
-    const serperResults = await searchGoogleProducts(tags)
-    return serperResults.map((p: any) => p.link)
+    return []
   }
 }
