@@ -73,8 +73,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
-      console.log(`🚀 Triggering search pipeline for ${from}: ${appUrl}/api/search`)
-      fetch(`${appUrl}/api/search`, {
+      const baseUrl = appUrl.endsWith('/') ? appUrl.slice(0, -1) : appUrl
+
+      console.log(`🚀 Triggering search pipeline for ${from}: ${baseUrl}/api/search`)
+      fetch(`${baseUrl}/api/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mediaId, from })
