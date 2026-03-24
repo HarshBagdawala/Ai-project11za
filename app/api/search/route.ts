@@ -27,9 +27,9 @@ export async function POST(req: Request) {
     if (!geminiUrls || geminiUrls.length === 0) {
       await sendTextMessage(
         from,
-        '😔 Sorry! Is waqt internet par is photo se match karta koi exact product (web URL) nahi mila.\n\nKoi aur photo try karein? 📸'
+        '😔 Sorry! Right now, no exact product (web URL) matching this photo could be found on the internet.\n\nTry another photo? 📸'
       ).catch(err => console.error('Failed to send no-match message:', err))
-      
+
       return NextResponse.json({ ok: true, found: 0 })
     }
 
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     await sendTextMessage(
       from,
       '⚠️ Kuch technical issue aa gaya. Thodi der mein dobara try karein!'
-    ).catch(() => {})
+    ).catch(() => { })
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
   }
 }

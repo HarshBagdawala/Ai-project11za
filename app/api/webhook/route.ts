@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
       const { sendTextMessage } = await import('@/lib/elevenZa')
       await sendTextMessage(
         from,
-        '📸 Namaste! Send a photo of any product, and I will find similar products for you!\n\n_Just send the photo — I handle the rest!_ ✨'
+        '📸 Hi there, Send a photo of any product, and I will find similar products for you!\n\n_Just send the photo — I handle the rest!_ ✨'
       ).catch(err => console.error('❌ Failed to send welcome message:', err))
     }
 
