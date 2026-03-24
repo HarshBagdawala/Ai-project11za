@@ -10,7 +10,7 @@ export async function searchProductsWithGemini(tags: ImageTags): Promise<string[
 
   try {
     const genAI = new GoogleGenerativeAI(apiKey)
-    const model = genAI.getGenerativeModel({
+    let model = genAI.getGenerativeModel({
       model: 'gemini-2.0-flash',
       tools: [{
         // @ts-ignore
@@ -26,7 +26,25 @@ Type: ${tags.type || 'product'}
 Return ONLY a valid JSON array containing the top 1 or 2 direct e-commerce shopping URLs for similar products. Your response must be an array of strings in JSON format. Do not use markdown, no explanations. 
 Example: ["https://example-store.com/product/1", "https://example-store.com/product/2"]`
 
-    const result = await model.generateContent(prompt)
+    let result;
+    try {
+      result = await model.generateContent(prompt)
+    } catch (apiError: any) {
+      if (apiError?.status === 429 || apiError?.message?.includes('429') || apiError?.message?.includes('Quota exceeded')) {
+        console.warn('⚠️ Gemini 2.0 Flash quota exceeded. Falling back to Gemini 1.5 Flash...')
+        model = genAI.getGenerativeModel({
+          model: 'gemini-1.5-flash',
+          tools: [{
+            // @ts-ignore
+            googleSearch: {}
+          }]
+        })
+        result = await model.generateContent(prompt)
+      } else {
+        throw apiError;
+      }
+    }
+
     const text = result.response.text()
     
     // Extract JSON array robustly
