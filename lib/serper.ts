@@ -15,7 +15,17 @@ export async function searchGoogleProducts(tags: ImageTags): Promise<GoogleProdu
     return []
   }
 
-  const query = `${tags.color || ''} ${tags.style && tags.style !== 'other' ? tags.style : ''} ${tags.type || ''}`.replace(/\s+/g, ' ').trim()
+  // Build a rich search query using all available tags
+  const keywordStr = tags.keywords && tags.keywords.length > 0 ? tags.keywords.slice(0, 3).join(' ') : ''
+  const query = [
+    tags.color || '',
+    tags.style && tags.style !== 'other' ? tags.style : '',
+    tags.type || '',
+    keywordStr,
+    'buy online India'
+  ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
+
+  console.log('🔍 Serper search query:', query)
 
   try {
     const res = await fetch("https://google.serper.dev/shopping", {
@@ -24,7 +34,7 @@ export async function searchGoogleProducts(tags: ImageTags): Promise<GoogleProdu
         "X-API-KEY": apiKey,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ q: query, gl: "in" })
+      body: JSON.stringify({ q: query, gl: "in", num: 10 })
     })
 
     if (!res.ok) {
@@ -39,14 +49,17 @@ export async function searchGoogleProducts(tags: ImageTags): Promise<GoogleProdu
       return []
     }
 
-    // Limit to top 2 results
-    return data.shopping.slice(0, 2).map((item: any) => ({
-      title: item.title || 'Product',
-      price: item.price || '',
-      imageUrl: item.imageUrl || '',
-      link: item.link || '',
-      source: item.source || 'Google Store'
-    }))
+    // Return top 5 results with valid links only
+    return data.shopping
+      .filter((item: any) => item.link && item.link.startsWith('http'))
+      .slice(0, 5)
+      .map((item: any) => ({
+        title: item.title || 'Product',
+        price: item.price || '',
+        imageUrl: item.imageUrl || '',
+        link: item.link || '',
+        source: item.source || 'Google Store'
+      }))
   } catch (error) {
     console.error('❌ Error fetching from Serper:', error)
     return []
