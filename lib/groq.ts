@@ -69,3 +69,46 @@ Only the message text, no quotes.`
   return response.choices[0].message.content?.trim() ||
     `🎉 We received your photo! Here are ${productCount} similar products we found for you:`
 }
+
+export async function extractProductFromText(text: string): Promise<ImageTags | null> {
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    max_tokens: 300,
+    temperature: 0.1,
+    messages: [
+      {
+        role: 'system',
+        content: `You are an expert e-commerce product classifier. 
+Analyze the user message and determine if they are asking to see or buy a product.
+If they ARE asking for a product, return ONLY a valid JSON object.
+If they ARE NOT asking for a product (just saying hi, etc.), return null.
+
+Required JSON format:
+{
+  "category": "clothing/footwear/electronics/accessories/home/beauty/other",
+  "color": "primary color if mentioned",
+  "type": "specific item name",
+  "style": "casual/formal/ethnic/sporty/western/other",
+  "keywords": ["keyword1", "keyword2"]
+}`
+      },
+      {
+        role: 'user',
+        content: `User message: "${text}"`
+      }
+    ]
+  })
+
+  const content = response.choices[0].message.content?.trim() || ''
+  if (content.toLowerCase() === 'null') return null
+
+  try {
+    const jsonMatch = content.match(/\{.*\}/s)
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0]) as ImageTags
+    }
+  } catch (e) {
+    console.error('Failed to parse product intent:', e)
+  }
+  return null
+}

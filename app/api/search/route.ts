@@ -1,23 +1,36 @@
 import { NextResponse } from 'next/server'
-import { analyzeProductImage } from '@/lib/groq'
+import { analyzeProductImage, extractProductFromText } from '@/lib/groq'
 import { downloadMediaAsBase64, sendTextMessage, sendUrlMessage } from '@/lib/elevenZa'
 import { searchGoogleProducts } from '@/lib/serper'
 import { delay } from '@/lib/utils'
+import type { ImageTags } from '@/types'
 
 export const maxDuration = 30
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
-  const { mediaId, from } = await req.json()
+  const { mediaId, query, from } = await req.json()
 
   try {
-    // Step 1: Download image from 11za
-    console.log('📥 Downloading image...')
-    const imageBase64 = await downloadMediaAsBase64(mediaId)
+    let tags: ImageTags | null = null
 
-    // Step 2: Analyze with Groq Vision
-    console.log('🔍 Analyzing with Groq Vision...')
-    const tags = await analyzeProductImage(imageBase64)
+    if (query) {
+      // Step: Extract tags from text query
+      console.log('📝 Extracting tags from text query:', query)
+      tags = await extractProductFromText(query)
+    } else if (mediaId) {
+      // Step: Download and analyze image
+      console.log('📥 Downloading image...')
+      const imageBase64 = await downloadMediaAsBase64(mediaId)
+      console.log('🔍 Analyzing with Groq Vision...')
+      tags = await analyzeProductImage(imageBase64)
+    }
+
+    if (!tags) {
+      console.log('ℹ️ No tags extracted, skipping search.')
+      return NextResponse.json({ ok: true, found: 0 })
+    }
+
     console.log('Tags:', tags)
 
     // Step 3: Real Google Shopping Search via Serper

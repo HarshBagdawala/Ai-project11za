@@ -87,13 +87,37 @@ export async function POST(req: NextRequest) {
       // to the background `/api/search` worker before returning!
       await new Promise(resolve => setTimeout(resolve, 1000))
 
-    } else if (type === 'text') {
+    } else if (type === 'text' && text) {
       console.log(`💬 Text message from ${from}: ${text}`)
-      const { sendTextMessage } = await import('@/lib/elevenZa')
-      await sendTextMessage(
-        from,
-        '📸 Hi! Send me a photo of any product and I will find similar products for you on Google Shopping!\n\n_Just send the photo — I handle the rest!_ ✨'
-      ).catch(err => console.error('❌ Failed to send welcome message:', err))
+      
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL
+      if (!appUrl) {
+        console.error('❌ NEXT_PUBLIC_APP_URL is not set!')
+        return NextResponse.json({ ok: true })
+      }
+      const baseUrl = appUrl.endsWith('/') ? appUrl.slice(0, -1) : appUrl
+
+      // Trigger search pipeline for text (it will auto-detect product intent)
+      console.log(`🚀 Triggering text-search pipeline for ${from}: ${baseUrl}/api/search`)
+      fetch(`${baseUrl}/api/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: text, from })
+      })
+      .then(async (res) => {
+        const data = await res.json();
+        // If it wasn't a product search (found: 0), send the help message
+        if (data.found === 0) {
+          const { sendTextMessage } = await import('@/lib/elevenZa')
+          await sendTextMessage(
+            from,
+            '📸 Hi! Send me a photo of any product or just tell me what you are looking for (e.g. "red kurti") and I will find it for you!\n\n_I search Google Shopping for the best links!_ ✨'
+          ).catch(err => console.error('❌ Failed to send welcome message:', err))
+        }
+      })
+      .catch(err => console.error('❌ Pipeline trigger failed:', err))
+
+      await new Promise(resolve => setTimeout(resolve, 1000))
     }
 
     return NextResponse.json({ ok: true })
