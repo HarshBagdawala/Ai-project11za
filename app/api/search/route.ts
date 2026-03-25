@@ -1,6 +1,6 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { analyzeProductImage, extractProductFromText } from '@/lib/groq'
-import { downloadMediaAsBase64, sendTextMessage, sendUrlMessage } from '@/lib/elevenZa'
+import { downloadMediaAsBase64, sendTextMessage, sendProductImage, sendUrlButton } from '@/lib/elevenZa'
 import { searchGoogleProducts } from '@/lib/serper'
 import { delay } from '@/lib/utils'
 import type { ImageTags } from '@/types'
@@ -54,18 +54,29 @@ export async function POST(req: Request) {
     await sendTextMessage(from, intro)
     await delay(800)
 
-    // Step 5: Send each product as a separate URL message with details
+    // Step 5: Send each product as a separate card with image and "Click here" link
     for (let i = 0; i < displayProducts.length; i++) {
       const p = displayProducts[i]
       const emoji = ['1️⃣', '2️⃣', '3️⃣'][i] || `${i + 1}.`
-      const msg = [
+      
+      // Caption with Emoji, Title and Price
+      const caption = [
         `${emoji} *${p.title}*`,
         p.price ? `💰 Price: ${p.price}` : '',
-        p.source ? `🏪 Source: ${p.source}` : '',
-        `🔗 ${p.link}`
+        p.source ? `🏪 Source: ${p.source}` : ''
       ].filter(Boolean).join('\n')
 
-      await sendUrlMessage(from, msg)
+      // Use sendProductImage to send the image first
+      if (p.imageUrl) {
+        await sendProductImage(from, p.imageUrl, caption)
+      } else {
+        await sendTextMessage(from, caption)
+      }
+      
+      await delay(400)
+
+      // Use sendUrlButton for the clickable "Click here" link
+      await sendUrlButton(from, p.link, '🛒 Click here to view product')
       await delay(600)
     }
 

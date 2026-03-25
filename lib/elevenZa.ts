@@ -108,6 +108,40 @@ export async function sendUrlMessage(to: string, url: string): Promise<void> {
   }
 }
 
+// Send a URL button message (with custom text like "Click here")
+export async function sendUrlButton(to: string, url: string, label: string = '🛍️ Click here to view'): Promise<void> {
+  try {
+    const payload = {
+      sendto: to,
+      authToken: getAuthToken(),
+      originWebsite: 'https://11za.com/',
+      contentType: 'url',
+      url: url,
+      text: label
+    }
+
+    const response = await fetch(BASE_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.text()
+      throw new Error(`11za API error: ${response.status} ${errorData}`)
+    }
+    try {
+      const result = await response.json()
+      console.log(`✅ URL Button sent to ${to}:`, result)
+    } catch {
+      console.log(`✅ URL Button sent to ${to} (could not parse response)`)
+    }
+  } catch (error) {
+    console.error(`Failed to send URL button to ${to}:`, error)
+    throw error
+  }
+}
+
 // Send a product image with caption
 export async function sendProductImage(
   to: string,
