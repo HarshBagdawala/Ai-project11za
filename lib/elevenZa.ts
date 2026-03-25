@@ -42,37 +42,6 @@ export async function downloadMediaAsBase64(mediaIdOrUrl: string): Promise<strin
   }
 }
 
-// Download media as Buffer (useful for audio/transcription)
-export async function downloadMediaAsBuffer(mediaIdOrUrl: string): Promise<Buffer> {
-  try {
-    const apiKey = getAuthToken()
-    let downloadUrl = mediaIdOrUrl
-
-    if (!mediaIdOrUrl.startsWith('http')) {
-      const urlRes = await fetch(`https://graph.facebook.com/v19.0/${mediaIdOrUrl}`, {
-        headers: { 'Authorization': `Bearer ${apiKey}` }
-      })
-      if (!urlRes.ok) throw new Error(`Meta API error: ${urlRes.statusText}`)
-      const json = await urlRes.json()
-      downloadUrl = json.url
-    }
-
-    const headers: any = {}
-    if (downloadUrl.includes('facebook.com') || downloadUrl.includes('whatsapp.net')) {
-       headers['Authorization'] = `Bearer ${apiKey}`
-    }
-
-    const res = await fetch(downloadUrl, { headers })
-    if (!res.ok) throw new Error(`Failed to download media: ${res.statusText}`)
-
-    const arrayBuffer = await res.arrayBuffer()
-    return Buffer.from(arrayBuffer)
-  } catch (error) {
-    console.error('Error downloading media as buffer:', error)
-    throw error
-  }
-}
-
 // Send a text message
 export async function sendTextMessage(to: string, text: string): Promise<void> {
   try {

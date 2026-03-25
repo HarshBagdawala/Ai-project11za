@@ -10,16 +10,14 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
   const { mediaId, query, from } = await req.json()
-  const { getChatHistory, saveChatMessage } = await import('@/lib/supabase')
 
   try {
     let tags: ImageTags | null = null
-    const history = await getChatHistory(from)
 
     if (query) {
-      // Step: Extract tags from text query with history
-      console.log('📝 Extracting tags from text query with history:', query)
-      tags = await extractProductFromText(query, history)
+      // Step: Extract tags from text query
+      console.log('📝 Extracting tags from text query:', query)
+      tags = await extractProductFromText(query)
     } else if (mediaId) {
       // Step: Download and analyze image
       console.log('📥 Downloading image...')
@@ -53,7 +51,6 @@ export async function POST(req: Request) {
 
     // Step 4: Send intro message
     const intro = `🛍️ Got your photo! We found *${displayProducts.length}* similar products on Google Shopping:\n\n(Click the links below to view each product directly 👇)`
-    await saveChatMessage(from, 'assistant', intro)
     await sendTextMessage(from, intro)
     await delay(800)
 

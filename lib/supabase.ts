@@ -46,23 +46,3 @@ export async function getSearchLogs(limit = 50) {
   if (error) console.error('Failed to fetch logs:', error)
   return data || []
 }
-
-export async function saveChatMessage(phone: string, role: 'user' | 'assistant', content: string): Promise<void> {
-  const { error } = await supabase.from('chats').insert({ customer_phone: phone, role, content })
-  if (error) console.error('Failed to save chat message:', error)
-}
-
-export async function getChatHistory(phone: string, limit = 10) {
-  const { data, error } = await supabase
-    .from('chats')
-    .select('role, content')
-    .eq('customer_phone', phone)
-    .order('created_at', { ascending: true })
-    .limit(limit)
-  
-  if (error) {
-    console.error('Failed to fetch chat history:', error)
-    return []
-  }
-  return data || []
-}
