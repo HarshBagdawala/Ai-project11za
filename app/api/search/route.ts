@@ -42,7 +42,6 @@ export async function POST(req: Request) {
     await delay(800)
 
     // Step 5: Send each product as a separate URL message with details
-    const displayProducts = products.slice(0, 3)
     for (let i = 0; i < displayProducts.length; i++) {
       const p = displayProducts[i]
       const emoji = ['1️⃣', '2️⃣', '3️⃣'][i] || `${i + 1}.`
