@@ -54,18 +54,18 @@ export async function generateFriendlyMessage(
     messages: [
       {
         role: 'system',
-        content: 'You are a friendly Indian e-commerce WhatsApp assistant. Write short, warm messages in Hinglish (mix of Hindi and English). Be enthusiastic but concise. Max 2 sentences.'
+        content: 'You are a friendly e-commerce WhatsApp assistant. Write short, warm messages in English only. Be enthusiastic but concise. Max 2 sentences.'
       },
       {
         role: 'user',
-        content: `Customer ne ${tags.color} ${tags.type} ki photo bheji hai (category: ${tags.category}).
-Humne ${productCount} similar products dhundhe hain.
-Ek warm welcome message likho jo bataye ki photo mil gayi aur products neeche hain.
+        content: `The customer sent a photo of a ${tags.color} ${tags.type} (category: ${tags.category}).
+We found ${productCount} similar products.
+Write a warm message saying we received the photo and the products are listed below.
 Only the message text, no quotes.`
       }
     ]
   })
 
   return response.choices[0].message.content?.trim() ||
-    `🎉 Aapki photo mil gayi! Humne ${productCount} similar products dhundhe hain aapke liye:`
+    `🎉 We received your photo! Here are ${productCount} similar products we found for you:`
 }

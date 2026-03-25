@@ -27,14 +27,14 @@ export async function POST(req: Request) {
     if (!products || products.length === 0) {
       await sendTextMessage(
         from,
-        '😔 Sorry! Is photo ke jaisa koi product abhi Google Shopping pe nahi mila.\n\nKoi aur photo try karein? 📸'
+        '😔 Sorry! We could not find any matching product on Google Shopping for this photo.\n\nPlease try with another photo? 📸'
       ).catch(err => console.error('Failed to send no-match message:', err))
 
       return NextResponse.json({ ok: true, found: 0 })
     }
 
     // Step 4: Send intro message
-    const intro = `🛍️ Aapki photo dekh li! Humne *${products.length}* similar products dhundhe hain Google Shopping pe:\n\n(Neeche diye links pe click karke directly product dekh sakte hain 👇)`
+    const intro = `🛍️ Got your photo! We found *${products.length}* similar products on Google Shopping:\n\n(Click the links below to view each product directly 👇)`
     await sendTextMessage(from, intro)
     await delay(800)
 
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     }
 
     // Step 6: Closing message
-    await sendTextMessage(from, '✨ Koi aur product dhundna ho toh photo bhejein!')
+    await sendTextMessage(from, '✨ Want to find another product? Just send a photo!')
 
     console.log('✅ Search pipeline complete!')
     return NextResponse.json({ ok: true, found: products.length })
@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     console.error('Search pipeline error:', error)
     await sendTextMessage(
       from,
-      '⚠️ Kuch technical issue aa gayi. Thodi der baad dobara try karein!'
+      '⚠️ A technical error occurred. Please try again in a little while!'
     ).catch(() => { })
     return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
   }
