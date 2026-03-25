@@ -70,7 +70,11 @@ Only the message text, no quotes.`
     `🎉 We received your photo! Here are ${productCount} similar products we found for you:`
 }
 
-export async function extractProductFromText(text: string): Promise<ImageTags | null> {
+export async function extractProductFromText(text: string, history: any[] = []): Promise<ImageTags | null> {
+  const historyString = history.length > 0 
+    ? history.map(h => `${h.role}: ${h.content}`).join('\n')
+    : 'No history.'
+
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     max_tokens: 300,
@@ -79,9 +83,12 @@ export async function extractProductFromText(text: string): Promise<ImageTags | 
       {
         role: 'system',
         content: `You are an expert e-commerce product classifier. 
-Analyze the user message and determine if they are asking to see or buy a product.
+Analyze the user message and history to determine if they are asking to see, buy or find a product.
 If they ARE asking for a product, return ONLY a valid JSON object.
-If they ARE NOT asking for a product (just saying hi, etc.), return null.
+If they ARE NOT asking for a product (just saying hi, asking general questions, etc.), return null.
+
+History:
+${historyString}
 
 Required JSON format:
 {
@@ -111,4 +118,41 @@ Required JSON format:
     console.error('Failed to parse product intent:', e)
   }
   return null
+}
+
+export async function chatWithAssistant(phone: string, text: string, history: any[]): Promise<string> {
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    max_tokens: 500,
+    temperature: 0.7,
+    messages: [
+      {
+        role: 'system',
+        content: `You are a helpful and friendly Indian e-commerce shopping assistant on WhatsApp. 
+You can help users find products by photo or text. 
+Respond in the language the user is using (English, Hindi, or Hinglish).
+Be concise, warm, and helpful. If you don't know something about a specific product, just say you can help them search for it if they send a photo or description.`
+      },
+      ...history.map(h => ({ role: h.role, content: h.content })),
+      { role: 'user', content: text }
+    ]
+  })
+
+  return response.choices[0].message.content || 'I am here to help you find the best products! Just send me a photo or tell me what you need.'
+}
+
+export async function transcribeAudio(audioBuffer: Buffer): Promise<string> {
+  try {
+    // Note: Whisper requires a file-like object. Convert Buffer to Uint8Array for compatibility.
+    const file = new File([new Uint8Array(audioBuffer)], 'audio.ogg', { type: 'audio/ogg' })
+    const transcription = await groq.audio.transcriptions.create({
+      file,
+      model: 'whisper-large-v3-turbo',
+      response_format: 'text',
+    })
+    return transcription as unknown as string
+  } catch (error) {
+    console.error('Groq transcription error:', error)
+    throw error
+  }
 }

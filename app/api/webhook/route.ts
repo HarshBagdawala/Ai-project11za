@@ -61,6 +61,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
+    const { saveChatMessage, getChatHistory } = await import('@/lib/supabase')
+
+    // Handle Audio/Voice messages
+    if (type === 'audio' || type === 'voice') {
+      if (!mediaId) {
+        console.error('❌ Audio message received but no mediaId found')
+        return NextResponse.json({ ok: true })
+      }
+
+      const { downloadMediaAsBuffer } = await import('@/lib/elevenZa')
+      const { transcribeAudio } = await import('@/lib/groq')
+
+      console.log('🎙️ Downloading and transcribing audio...')
+      try {
+        const audioBuffer = await downloadMediaAsBuffer(mediaId)
+        text = await transcribeAudio(audioBuffer)
+        type = 'text' // treat as text from now on
+        console.log(`📝 Transcribed audio: "${text}"`)
+      } catch (err) {
+        console.error('❌ Transcription failed:', err)
+        return NextResponse.json({ ok: true })
+      }
+    }
+
     if (type === 'image') {
       if (!mediaId) {
         console.error('❌ Image message received but no mediaId found')
@@ -99,6 +123,10 @@ export async function POST(req: NextRequest) {
 
       // Trigger search pipeline for text (it will auto-detect product intent)
       console.log(`🚀 Triggering text-search pipeline for ${from}: ${baseUrl}/api/search`)
+      
+      // Save user message to history
+      await saveChatMessage(from, 'user', text)
+
       fetch(`${baseUrl}/api/search`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -106,13 +134,16 @@ export async function POST(req: NextRequest) {
       })
       .then(async (res) => {
         const data = await res.json();
-        // If it wasn't a product search (found: 0), send the help message
+        // If it wasn't a product search (found: 0), use AI Assistant to reply
         if (data.found === 0) {
+          const { chatWithAssistant } = await import('@/lib/groq')
           const { sendTextMessage } = await import('@/lib/elevenZa')
-          await sendTextMessage(
-            from,
-            '📸 Hi! Send me a photo of any product or just tell me what you are looking for (e.g. "red kurti") and I will find it for you!\n\n_I search Google Shopping for the best links!_ ✨'
-          ).catch(err => console.error('❌ Failed to send welcome message:', err))
+          
+          const history = await getChatHistory(from)
+          const assistantReply = await chatWithAssistant(from, text!, history)
+          
+          await saveChatMessage(from, 'assistant', assistantReply)
+          await sendTextMessage(from, assistantReply).catch(err => console.error('❌ Failed to send AI reply:', err))
         }
       })
       .catch(err => console.error('❌ Pipeline trigger failed:', err))
