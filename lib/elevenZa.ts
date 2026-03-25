@@ -142,6 +142,50 @@ export async function sendUrlButton(to: string, url: string, label: string = '�
   }
 }
 
+// Send a product result using a 11za Template
+export async function sendProductTemplate(
+  to: string, 
+  product: { title: string, price: string, imageUrl: string, link: string }, 
+  customerName: string = 'Customer'
+): Promise<void> {
+  try {
+    const templateName = process.env.ELEVEN_ZA_TEMPLATE_NAME || 'product_result'
+    
+    const payload = {
+      authToken: getAuthToken(),
+      name: customerName,
+      sendto: to,
+      originWebsite: 'www.11za.com',
+      templateName: templateName,
+      language: 'en',
+      buttonValue: product.link,
+      myfile: product.imageUrl,
+      myfilename: 'product_image.jpg',
+      data: [
+        product.title,
+        product.price || 'Price on request'
+      ]
+    }
+
+    const response = await fetch('https://api.11za.in/apis/sendMessage/sendTemplateMessage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    })
+
+    if (!response.ok) {
+      const errorData = await response.text()
+      throw new Error(`11za Template API error: ${response.status} ${errorData}`)
+    }
+    
+    const result = await response.json()
+    console.log(`✅ Template sent to ${to}:`, result)
+  } catch (error) {
+    console.error(`Failed to send template to ${to}:`, error)
+    throw error
+  }
+}
+
 // Send a product image with caption
 export async function sendProductImage(
   to: string,
@@ -153,8 +197,11 @@ export async function sendProductImage(
       sendto: to,
       authToken: getAuthToken(),
       originWebsite: 'https://11za.com/',
-      contentType: 'image',
-      mediaUrl: imageUrl,
+      contentType: 'media',
+      media: {
+        type: 'image',
+        url: imageUrl
+      },
       text: caption
     }
 
@@ -170,9 +217,9 @@ export async function sendProductImage(
     }
     try {
       const result = await response.json()
-      console.log(`✅ Image sent to ${to}:`, result)
+      console.log(`✅ Image sent as media to ${to}:`, result)
     } catch {
-      console.log(`✅ Image sent to ${to} (could not parse response)`)
+      console.log(`✅ Image sent as media to ${to} (could not parse response)`)
     }
   } catch (error) {
     console.error(`Failed to send image to ${to}:`, error)

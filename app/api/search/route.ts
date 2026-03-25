@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { analyzeProductImage, extractProductFromText } from '@/lib/groq'
-import { downloadMediaAsBase64, sendTextMessage, sendProductImage, sendUrlButton } from '@/lib/elevenZa'
+import { downloadMediaAsBase64, sendTextMessage, sendProductTemplate } from '@/lib/elevenZa'
 import { searchGoogleProducts } from '@/lib/serper'
 import { delay } from '@/lib/utils'
 import type { ImageTags } from '@/types'
@@ -54,30 +54,13 @@ export async function POST(req: Request) {
     await sendTextMessage(from, intro)
     await delay(800)
 
-    // Step 5: Send each product as a separate card with image and "Click here" link
+    // Step 5: Send each product as a separate template card
     for (let i = 0; i < displayProducts.length; i++) {
       const p = displayProducts[i]
-      const emoji = ['1️⃣', '2️⃣', '3️⃣'][i] || `${i + 1}.`
       
-      // Caption with Emoji, Title and Price
-      const caption = [
-        `${emoji} *${p.title}*`,
-        p.price ? `💰 Price: ${p.price}` : '',
-        p.source ? `🏪 Source: ${p.source}` : ''
-      ].filter(Boolean).join('\n')
-
-      // Use sendProductImage to send the image first
-      if (p.imageUrl) {
-        await sendProductImage(from, p.imageUrl, caption)
-      } else {
-        await sendTextMessage(from, caption)
-      }
-      
-      await delay(400)
-
-      // Use sendUrlButton for the clickable "Click here" link
-      await sendUrlButton(from, p.link, '🛒 Click here to view product')
-      await delay(600)
+      // Use sendProductTemplate for the rich card
+      await sendProductTemplate(from, p)
+      await delay(800)
     }
 
     // Step 6: Closing message
@@ -86,12 +69,9 @@ export async function POST(req: Request) {
     console.log('✅ Search pipeline complete!')
     return NextResponse.json({ ok: true, found: products.length })
 
-  } catch (error) {
-    console.error('Search pipeline error:', error)
-    await sendTextMessage(
-      from,
-      '⚠️ A technical error occurred. Please try again in a little while!'
-    ).catch(() => { })
-    return NextResponse.json({ ok: false, error: String(error) }, { status: 500 })
+  } catch (err: any) {
+    console.error('❌ Search pipeline error:', err)
+    await sendTextMessage(from, '⚠️ Sorry, we encountered an error while searching. Please try again later.').catch(() => {})
+    return NextResponse.json({ ok: false, error: err.message }, { status: 500 })
   }
 }
