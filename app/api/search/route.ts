@@ -33,15 +33,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true, found: 0 })
     }
 
+    // Step 5: Prepare display list
+    const displayProducts = products.slice(0, 3)
+
     // Step 4: Send intro message
-    const intro = `🛍️ Got your photo! We found *${products.length}* similar products on Google Shopping:\n\n(Click the links below to view each product directly 👇)`
+    const intro = `🛍️ Got your photo! We found *${displayProducts.length}* similar products on Google Shopping:\n\n(Click the links below to view each product directly 👇)`
     await sendTextMessage(from, intro)
     await delay(800)
 
     // Step 5: Send each product as a separate URL message with details
-    for (let i = 0; i < products.length; i++) {
-      const p = products[i]
-      const emoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'][i] || `${i + 1}.`
+    const displayProducts = products.slice(0, 3)
+    for (let i = 0; i < displayProducts.length; i++) {
+      const p = displayProducts[i]
+      const emoji = ['1️⃣', '2️⃣', '3️⃣'][i] || `${i + 1}.`
       const msg = [
         `${emoji} *${p.title}*`,
         p.price ? `💰 Price: ${p.price}` : '',
