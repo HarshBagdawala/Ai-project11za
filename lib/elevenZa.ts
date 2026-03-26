@@ -151,6 +151,7 @@ export async function sendProductTemplate(
   try {
     const templateName = 'harsh_test'
 
+    console.log('product-imageUrl', product.imageUrl)
     const payload = {
       authToken: getAuthToken(),
       name: customerName,
