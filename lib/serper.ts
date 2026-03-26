@@ -55,7 +55,8 @@ export async function searchGoogleProducts(tags: ImageTags): Promise<GoogleProdu
         item.link && 
         item.link.startsWith('http') && 
         item.imageUrl && 
-        item.imageUrl.startsWith('http')
+        item.imageUrl.startsWith('http') &&
+        !item.imageUrl.toLowerCase().includes('.webp')
       )
       .slice(0, 3)
       .map((item: any) => ({

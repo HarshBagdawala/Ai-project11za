@@ -54,9 +54,12 @@ export async function POST(req: Request) {
     await sendTextMessage(from, intro)
     await delay(800)
 
-    // Step 5: Send only the first product (best match) as a rich template card
-    if (displayProducts.length > 0) {
-      await sendProductTemplate(from, displayProducts[0])
+    // Step 5: Send each product as a separate template card (up to 3)
+    for (let i = 0; i < displayProducts.length; i++) {
+      const p = displayProducts[i]
+      
+      // Use sendProductTemplate for the rich card
+      await sendProductTemplate(from, p)
       await delay(800)
     }
 
