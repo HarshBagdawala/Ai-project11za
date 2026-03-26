@@ -28,7 +28,7 @@ export async function downloadMediaAsBase64(mediaIdOrUrl: string): Promise<strin
     // Set authorization header if it's downloading deeply from Meta Cloud APIs
     const headers: any = {}
     if (downloadUrl.includes('facebook.com') || downloadUrl.includes('whatsapp.net')) {
-      headers['Authorization'] = `Bearer ${apiKey}`
+       headers['Authorization'] = `Bearer ${apiKey}`
     }
 
     const imgRes = await fetch(downloadUrl, { headers })
@@ -108,85 +108,6 @@ export async function sendUrlMessage(to: string, url: string): Promise<void> {
   }
 }
 
-// Send a URL button message (with custom text like "Click here")
-export async function sendUrlButton(to: string, url: string, label: string = '🛍️ Click here to view'): Promise<void> {
-  try {
-    const payload = {
-      sendto: to,
-      authToken: getAuthToken(),
-      originWebsite: 'https://11za.com/',
-      contentType: 'url',
-      url: url,
-      text: label
-    }
-
-    const response = await fetch(BASE_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-
-    if (!response.ok) {
-      const errorData = await response.text()
-      throw new Error(`11za API error: ${response.status} ${errorData}`)
-    }
-    try {
-      const result = await response.json()
-      console.log(`✅ URL Button sent to ${to}:`, result)
-    } catch {
-      console.log(`✅ URL Button sent to ${to} (could not parse response)`)
-    }
-  } catch (error) {
-    console.error(`Failed to send URL button to ${to}:`, error)
-    throw error
-  }
-}
-
-// Send a product result using a 11za Template
-export async function sendProductTemplate(
-  to: string,
-  product: { title: string, price: string, imageUrl: string, link: string },
-  customerName: string = 'Customer'
-): Promise<void> {
-  try {
-    const templateName = process.env.ELEVEN_ZA_TEMPLATE_NAME || 'harsh test'
-
-    console.log('product-imageUrl', product.imageUrl)
-    const payload = {
-      authToken: getAuthToken(),
-      name: customerName,
-      sendto: to,
-      originWebsite: 'https://11za.com/',
-      templateName: templateName,
-      language: 'en',
-      buttonValue: product.link,
-      myfile: product.imageUrl,
-      data: [
-        product.title,
-        product.price || 'Price on request'
-      ]
-    }
-
-    const response = await fetch('https://api.11za.in/apis/template/sendTemplate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    })
-
-    console.log(`response`, response)
-    if (!response.ok) {
-      const errorData = await response.text()
-      throw new Error(`11za Template API error: ${response.status} ${errorData}`)
-    }
-
-    const result = await response.json()
-    console.log(`✅ Template sent to ${to}:`, result)
-  } catch (error) {
-    console.error(`Failed to send template to ${to}:`, error)
-    throw error
-  }
-}
-
 // Send a product image with caption
 export async function sendProductImage(
   to: string,
@@ -198,11 +119,8 @@ export async function sendProductImage(
       sendto: to,
       authToken: getAuthToken(),
       originWebsite: 'https://11za.com/',
-      contentType: 'media',
-      media: {
-        type: 'image',
-        url: imageUrl
-      },
+      contentType: 'image',
+      mediaUrl: imageUrl,
       text: caption
     }
 
@@ -218,9 +136,9 @@ export async function sendProductImage(
     }
     try {
       const result = await response.json()
-      console.log(`✅ Image sent as media to ${to}:`, result)
+      console.log(`✅ Image sent to ${to}:`, result)
     } catch {
-      console.log(`✅ Image sent as media to ${to} (could not parse response)`)
+      console.log(`✅ Image sent to ${to} (could not parse response)`)
     }
   } catch (error) {
     console.error(`Failed to send image to ${to}:`, error)
