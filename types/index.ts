@@ -30,6 +30,8 @@ export interface ImageTags {
   type: string
   style: string
   keywords: string[]
+  minPrice?: number
+  maxPrice?: number
 }
 
 export interface WhatsAppMessage {

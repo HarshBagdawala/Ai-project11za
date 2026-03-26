@@ -84,7 +84,7 @@ Only the message text, no quotes.`
 export async function extractProductFromText(
   text: string,
   history: {role: string, content: string}[] = []
-): Promise<ImageTags | null> {
+): Promise<ImageTags | { chatReply: string } | null> {
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     max_tokens: 300,
@@ -92,19 +92,26 @@ export async function extractProductFromText(
     messages: [
       {
         role: 'system',
-        content: `You are an expert e-commerce product classifier. 
-Analyze the user message and determine if they are asking to see or buy a product.
-If they ARE asking for a product, return ONLY a valid JSON object.
-If they ARE NOT asking for a product (just saying hi, etc.), return null.
+        content: `You are a helpful and intelligent AI WhatsApp Assistant for an e-commerce store.
+Analyze the user message and determine if they want to SEARCH/BUY a product, OR if they are just chatting/asking out-of-syllabus questions.
 
-Required JSON format:
+If they WANT TO SEARCH FOR A PRODUCT, extract the details and return ONLY a valid JSON object:
 {
   "category": "clothing/footwear/electronics/accessories/home/beauty/other",
   "color": "primary color if mentioned",
   "type": "specific item name",
   "style": "casual/formal/ethnic/sporty/western/other",
-  "keywords": ["keyword1", "keyword2"]
-}`
+  "keywords": ["keyword1", "keyword2"],
+  "minPrice": 1000, 
+  "maxPrice": 2000
+}
+
+If they ARE NOT asking for a product (e.g. asking general questions, saying hi, asking coding questions, general knowledge, etc), act as a conversational AI chatbot and return ONLY a valid JSON object with a single "chatReply" string in the language they used:
+{
+  "chatReply": "Your smart, friendly conversational response here."
+}
+
+DO NOT wrap JSON in Markdown blocks and do not return anything other than JSON.`
       },
       ...history.map(h => ({ role: h.role as 'user' | 'assistant', content: h.content })),
       {
@@ -120,10 +127,84 @@ Required JSON format:
   try {
     const jsonMatch = content.match(/\{.*\}/s)
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]) as ImageTags
+      return JSON.parse(jsonMatch[0])
     }
   } catch (e) {
     console.error('Failed to parse product intent:', e)
   }
   return null
+}
+
+export interface LocalizedMessages {
+  intro: string;
+  noMatch: string;
+  closing: string;
+  priceLabel: string;
+  sourceLabel: string;
+  notUnderstood: string;
+}
+
+const defaultMessages: LocalizedMessages = {
+  intro: "🛍️ I understood your request! We found *{count}* similar products:",
+  noMatch: "😔 Sorry! We could not find any matching product. Please try again with another query/photo 📸",
+  closing: "✨ Want to find another product? Just send a photo, voice note, or tell me what you need!",
+  priceLabel: "Price:",
+  sourceLabel: "Source:",
+  notUnderstood: "I could not hear that properly. Could you please try again?"
+};
+
+export async function getLocalizedMessages(query?: string | null): Promise<LocalizedMessages> {
+  if (!query) return defaultMessages;
+
+  try {
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 300,
+      temperature: 0.1,
+      messages: [
+        {
+          role: 'system',
+          content: `You are a translator. Identify the language of the user's message. Translate the following interface text into that exact language (maintaining the same tone and emojis). 
+Return ONLY a valid JSON object matching this structure:
+{
+  "intro": "🛍️ I understood your request! We found *{count}* similar products:",
+  "noMatch": "😔 Sorry! We could not find any matching product. Please try again with another query/photo 📸",
+  "closing": "✨ Want to find another product? Just send a photo, voice note, or tell me what you need!",
+  "priceLabel": "Price:",
+  "sourceLabel": "Source:",
+  "notUnderstood": "I could not understand that properly. Could you please try again?"
+}
+Do NOT wrap the JSON in Markdown blocks. Leave {count} intact. Keep emojis.`
+        },
+        { role: 'user', content: `User message: "${query}"` }
+      ]
+    });
+    const content = response.choices[0].message.content?.trim() || '';
+    const jsonMatch = content.match(/\{.*\}/s);
+    if (jsonMatch) return JSON.parse(jsonMatch[0]) as LocalizedMessages;
+  } catch (error) {
+    console.error('Translation failed, falling back to English', error);
+  }
+  return defaultMessages;
+}
+
+export async function getWelcomeMessage(query: string): Promise<string> {
+  const defaultWelcome = '📸 Hi! Send me a photo of any product or just tell me what you are looking for (e.g. "red kurti") and I will find it for you!\n\n_I search Google Shopping for the best links!_ ✨';
+  try {
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      max_tokens: 150,
+      temperature: 0.1,
+      messages: [
+        {
+          role: 'system',
+          content: `Identify the language of the user message. Translate this welcome message into that language, keeping the same emojis and formatting: "${defaultWelcome}". Return ONLY the translated string.`
+        },
+        { role: 'user', content: `Message: "${query}"` }
+      ]
+    });
+    return response.choices[0].message.content?.trim() || defaultWelcome;
+  } catch {
+    return defaultWelcome;
+  }
 }

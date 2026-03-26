@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
-import { analyzeProductImage, extractProductFromText, transcribeAudioMessage } from '@/lib/groq'
-import { downloadMediaAsBase64, downloadMediaAsBuffer, sendTextMessage, sendUrlMessage } from '@/lib/elevenZa'
+import { analyzeProductImage, extractProductFromText, transcribeAudioMessage, getLocalizedMessages } from '@/lib/groq'
+import { downloadMediaAsBase64, downloadMediaAsBuffer, sendTextMessage, sendProductImage } from '@/lib/elevenZa'
 import { getChatHistory, saveChatMessage } from '@/lib/supabase'
 import { searchGoogleProducts } from '@/lib/serper'
 import { delay } from '@/lib/utils'
@@ -24,7 +24,8 @@ export async function POST(req: Request) {
       console.log(`📝 Transcribed text: "${actualQuery}"`)
       
       if (!actualQuery || actualQuery.trim() === '') {
-        await sendTextMessage(from, 'I could not hear that properly. Could you please try again?')
+        const msgs = await getLocalizedMessages(null)
+        await sendTextMessage(from, msgs.notUnderstood)
         return NextResponse.json({ ok: true, found: 0 })
       }
     }
@@ -33,7 +34,18 @@ export async function POST(req: Request) {
       // Step: Extract tags from text query with history
       console.log('📝 Extracting tags from text query:', actualQuery)
       const history = await getChatHistory(from)
-      tags = await extractProductFromText(actualQuery, history)
+      const intent = await extractProductFromText(actualQuery, history)
+
+      if (intent && 'chatReply' in intent) {
+        console.log('🤖 Conversational AI Reply:', intent.chatReply)
+        await sendTextMessage(from, intent.chatReply)
+        // Chat History Saving
+        await saveChatMessage(from, 'user', actualQuery)
+        await saveChatMessage(from, 'assistant', intent.chatReply)
+        return NextResponse.json({ ok: true, found: 0, chat: true })
+      } else {
+        tags = intent as ImageTags
+      }
     } else if (mediaId) {
       // Step: Download and analyze image
       console.log('📥 Downloading image...')
@@ -48,17 +60,16 @@ export async function POST(req: Request) {
     }
 
     console.log('Tags:', tags)
+    
+    // Step: Get User's Language
+    const msgs = await getLocalizedMessages(actualQuery);
 
     // Step 3: Real Google Shopping Search via Serper
     console.log('🛍️ Searching Google Shopping for real product URLs...')
     const products = await searchGoogleProducts(tags)
 
     if (!products || products.length === 0) {
-      await sendTextMessage(
-        from,
-        '😔 Sorry! We could not find any matching product on Google Shopping for this photo.\n\nPlease try with another photo? 📸'
-      ).catch(err => console.error('Failed to send no-match message:', err))
-
+      await sendTextMessage(from, msgs.noMatch).catch(err => console.error('Failed to send no-match message:', err))
       return NextResponse.json({ ok: true, found: 0 })
     }
 
@@ -66,27 +77,35 @@ export async function POST(req: Request) {
     const displayProducts = products.slice(0, 3)
 
     // Step 4: Send intro message
-    const intro = `🛍️ Got your photo! We found *${displayProducts.length}* similar products on Google Shopping:`
+    const intro = msgs.intro.replace('{count}', String(displayProducts.length))
     await sendTextMessage(from, intro)
     await delay(800)
 
-    // Step 5: Send each product as a separate URL message with details
+    // Step 5: Send each product as a beautiful Image Message with details
     for (let i = 0; i < displayProducts.length; i++) {
       const p = displayProducts[i]
-      const emoji = ['1️⃣', '2️⃣', '3️⃣'][i] || `${i + 1}.`
-      const msg = [
-        `${emoji} *${p.title}*`,
-        p.price ? `💰 Price: ${p.price}` : '',
-        p.source ? `🏪 Source: ${p.source}` : '',
-        `🔗 ${p.link}`
-      ].filter(Boolean).join('\n')
+      const rank = ['🥇', '🥈', '🥉'][i] || `✨`
+      
+      const caption = [
+        `${rank} *${p.title}*`,
+        `━━━━━━━━━━━━━━━━━━`,
+        p.price ? `💰 *${msgs.priceLabel}* ${p.price}` : null,
+        p.source ? `🏪 *${msgs.sourceLabel}* ${p.source}` : null,
+        ``,
+        `🛒 *Tap below to view product:*`,
+        p.link
+      ].filter(line => line !== null && line !== undefined).join('\n')
 
-      await sendUrlMessage(from, msg)
+      if (p.imageUrl) {
+        await sendProductImage(from, p.imageUrl, caption)
+      } else {
+        await sendTextMessage(from, caption)
+      }
       await delay(600)
     }
 
     // Step 6: Closing message
-    await sendTextMessage(from, '✨ Want to find another product? Just send a photo, voice note, or tell me what you need!')
+    await sendTextMessage(from, msgs.closing)
 
     // Chat History Saving
     if (actualQuery) {

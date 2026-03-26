@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { saveUserIfNotExists } from '@/lib/supabase'
 
 export const maxDuration = 10
 export const dynamic = 'force-dynamic'
@@ -63,6 +64,9 @@ export async function POST(req: NextRequest) {
       console.log('ℹ️ No valid message found in payload')
       return NextResponse.json({ ok: true })
     }
+
+    // Save user to Database if they are new (or update their last active time)
+    saveUserIfNotExists(from).catch(err => console.error('User save error:', err))
 
     if (type === 'audio' || type === 'voice') {
       if (!mediaId) {
@@ -132,13 +136,13 @@ export async function POST(req: NextRequest) {
       })
       .then(async (res) => {
         const data = await res.json();
-        // If it wasn't a product search (found: 0), send the help message
-        if (data.found === 0) {
+        // If it wasn't a product search or a chat (found: 0 and !chat), send the help message
+        if (data.found === 0 && !data.chat) {
           const { sendTextMessage } = await import('@/lib/elevenZa')
-          await sendTextMessage(
-            from,
-            '📸 Hi! Send me a photo of any product or just tell me what you are looking for (e.g. "red kurti") and I will find it for you!\n\n_I search Google Shopping for the best links!_ ✨'
-          ).catch(err => console.error('❌ Failed to send welcome message:', err))
+          const { getWelcomeMessage } = await import('@/lib/groq')
+          const welcomeMsg = await getWelcomeMessage(text)
+          await sendTextMessage(from, welcomeMsg)
+            .catch(err => console.error('❌ Failed to send welcome message:', err))
         }
       })
       .catch(err => console.error('❌ Pipeline trigger failed:', err))

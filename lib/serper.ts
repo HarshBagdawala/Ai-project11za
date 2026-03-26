@@ -34,7 +34,7 @@ export async function searchGoogleProducts(tags: ImageTags): Promise<GoogleProdu
         "X-API-KEY": apiKey,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ q: query, gl: "in", num: 10 })
+      body: JSON.stringify({ q: query, gl: "in", num: 40 })
     })
 
     if (!res.ok) {
@@ -49,15 +49,23 @@ export async function searchGoogleProducts(tags: ImageTags): Promise<GoogleProdu
       return []
     }
 
-    // Return top 3 results with valid links and public image URLs only
-    return data.shopping
-      .filter((item: any) =>
-        item.link &&
-        item.link.startsWith('http') &&
-        item.imageUrl &&
-        item.imageUrl.startsWith('http') &&
-        !item.imageUrl.toLowerCase().includes('.webp')
-      )
+    // Filter results using budget constraints and valid links/images
+    const filteredProducts = data.shopping.filter((item: any) => {
+      if (!item.link || !item.link.startsWith('http')) return false
+      if (!item.imageUrl || !item.imageUrl.startsWith('http') || item.imageUrl.toLowerCase().includes('.webp')) return false
+      
+      if (item.price && (tags.minPrice !== undefined || tags.maxPrice !== undefined)) {
+        // Strip everything but numbers and decimal point
+        const numPrice = parseFloat(item.price.replace(/[^\\d.]/g, ''))
+        if (!isNaN(numPrice)) {
+          if (tags.minPrice && numPrice < tags.minPrice) return false
+          if (tags.maxPrice && numPrice > tags.maxPrice) return false
+        }
+      }
+      return true
+    })
+
+    return filteredProducts
       .slice(0, 7)
       .map((item: any) => ({
         title: item.title || 'Product',

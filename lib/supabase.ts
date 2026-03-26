@@ -47,6 +47,17 @@ export async function getSearchLogs(limit = 50) {
   return data || []
 }
 
+export async function saveUserIfNotExists(phoneNumber: string): Promise<void> {
+  // Upsert: Creates a new user row if phone_number doesn't exist.
+  // Updates last_active if they already exist.
+  const { error } = await supabase.from('users').upsert({
+    phone_number: phoneNumber,
+    last_active: new Date().toISOString()
+  }, { onConflict: 'phone_number' })
+
+  if (error) console.error('Failed to save/upsert user:', error.message)
+}
+
 export async function saveChatMessage(phoneNumber: string, role: 'user' | 'assistant', content: string): Promise<void> {
   const { error } = await supabase.from('chat_history').insert({
     phone_number: phoneNumber,
