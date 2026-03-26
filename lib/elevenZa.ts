@@ -172,6 +172,7 @@ export async function sendProductTemplate(
       body: JSON.stringify(payload)
     })
 
+    console.log(`response`, response)
     if (!response.ok) {
       const errorData = await response.text()
       throw new Error(`11za Template API error: ${response.status} ${errorData}`)
