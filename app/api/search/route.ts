@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { analyzeProductImage, extractProductFromText } from '@/lib/groq'
-import { downloadMediaAsBase64, sendProductImage, sendTextMessage, sendUrlMessage } from '@/lib/elevenZa'
+import { downloadMediaAsBase64, sendTextMessage, sendUrlMessage } from '@/lib/elevenZa'
 import { searchGoogleProducts } from '@/lib/serper'
 import { delay } from '@/lib/utils'
 import type { ImageTags } from '@/types'
@@ -47,17 +47,17 @@ export async function POST(req: Request) {
     }
 
     // Step 5: Prepare display list
-    const displayProducts = products.slice(0, 3)
+    const displayProducts = products.slice(0, 5)
 
     // Step 4: Send intro message
-    const intro = `🛍️ Got your photo! We found *${displayProducts.length}* similar products on Google Shopping:\n\n(Click the links below to view each product directly 👇)`
+    const intro = `🛍️ Got your photo! We found *${displayProducts.length}* similar products on Google Shopping:`
     await sendTextMessage(from, intro)
     await delay(800)
 
     // Step 5: Send each product as a separate URL message with details
     for (let i = 0; i < displayProducts.length; i++) {
       const p = displayProducts[i]
-      const emoji = ['1️⃣', '2️⃣', '3️⃣'][i] || `${i + 1}.`
+      const emoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣'][i] || `${i + 1}.`
       const msg = [
         `${emoji} *${p.title}*`,
         p.price ? `💰 Price: ${p.price}` : '',
@@ -65,12 +65,7 @@ export async function POST(req: Request) {
         `🔗 ${p.link}`
       ].filter(Boolean).join('\n')
 
-      // Only send image for the first product to keep the chat clean
-      if (i === 0 && p.imageUrl) {
-        await sendProductImage(from, p.imageUrl, msg)
-      } else {
-        await sendUrlMessage(from, msg)
-      }
+      await sendUrlMessage(from, msg)
       await delay(600)
     }
 
