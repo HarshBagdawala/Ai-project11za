@@ -49,8 +49,11 @@ export async function POST(req: NextRequest) {
       if (type === 'media' && body.content.media?.type === 'image') {
         type = 'image' // map to internal "image" type
         mediaId = body.content.media.url // pass the direct URL instead of graph API ID
+      } else if (type === 'media' && (body.content.media?.type === 'audio' || body.content.media?.type === 'voice')) {
+        type = 'audio'
+        mediaId = body.content.media.url
       } else {
-        mediaId = body.content.mediaId || body.content.image?.id
+        mediaId = body.content.mediaId || body.content.image?.id || body.content.audio?.id || body.content.voice?.id
       }
 
       text = body.content.text
@@ -61,7 +64,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true })
     }
 
-    if (type === 'image') {
+    if (type === 'audio' || type === 'voice') {
+      if (!mediaId) {
+        console.error('❌ Audio message received but no mediaId found')
+        return NextResponse.json({ ok: true })
+      }
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL
+      if (!appUrl) {
+        console.error('❌ NEXT_PUBLIC_APP_URL is not set!')
+        return NextResponse.json({ ok: true })
+      }
+
+      const baseUrl = appUrl.endsWith('/') ? appUrl.slice(0, -1) : appUrl
+
+      console.log(`🎙️ Triggering voice search pipeline for ${from}: ${baseUrl}/api/search`)
+      fetch(`${baseUrl}/api/search`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ audioId: mediaId, from })
+      }).catch(err => console.error('❌ Pipeline trigger failed:', err))
+
+      await new Promise(resolve => setTimeout(resolve, 1000))
+
+    } else if (type === 'image') {
       if (!mediaId) {
         console.error('❌ Image message received but no mediaId found')
         return NextResponse.json({ ok: true })

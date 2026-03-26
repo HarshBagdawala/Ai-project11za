@@ -9,8 +9,8 @@ const getAuthToken = () => {
   return apiKey || ''
 }
 
-// Download media from 11za or Meta
-export async function downloadMediaAsBase64(mediaIdOrUrl: string): Promise<string> {
+// Download media from 11za or Meta as a Buffer
+export async function downloadMediaAsBuffer(mediaIdOrUrl: string): Promise<Buffer> {
   try {
     const apiKey = getAuthToken()
     let downloadUrl = mediaIdOrUrl
@@ -35,11 +35,17 @@ export async function downloadMediaAsBase64(mediaIdOrUrl: string): Promise<strin
     if (!imgRes.ok) throw new Error(`Failed to download media: ${imgRes.statusText}`)
 
     const buffer = await imgRes.arrayBuffer()
-    return Buffer.from(buffer).toString('base64')
+    return Buffer.from(buffer)
   } catch (error) {
     console.error('Error downloading media:', error)
     throw error
   }
+}
+
+// Download media as Base64 string for Vision API
+export async function downloadMediaAsBase64(mediaIdOrUrl: string): Promise<string> {
+  const buffer = await downloadMediaAsBuffer(mediaIdOrUrl)
+  return buffer.toString('base64')
 }
 
 // Send a text message

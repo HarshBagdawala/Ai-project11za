@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
-import { analyzeProductImage, extractProductFromText } from '@/lib/groq'
-import { downloadMediaAsBase64, sendTextMessage, sendUrlMessage } from '@/lib/elevenZa'
+import { analyzeProductImage, extractProductFromText, transcribeAudioMessage } from '@/lib/groq'
+import { downloadMediaAsBase64, downloadMediaAsBuffer, sendTextMessage, sendUrlMessage } from '@/lib/elevenZa'
+import { getChatHistory, saveChatMessage } from '@/lib/supabase'
 import { searchGoogleProducts } from '@/lib/serper'
 import { delay } from '@/lib/utils'
 import type { ImageTags } from '@/types'
@@ -9,15 +10,30 @@ export const maxDuration = 30
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: Request) {
-  const { mediaId, query, from } = await req.json()
+  const { mediaId, audioId, query, from } = await req.json()
 
   try {
     let tags: ImageTags | null = null
+    let actualQuery = query
 
-    if (query) {
-      // Step: Extract tags from text query
-      console.log('📝 Extracting tags from text query:', query)
-      tags = await extractProductFromText(query)
+    if (audioId) {
+      console.log('🎙️ Downloading audio message...')
+      const audioBuffer = await downloadMediaAsBuffer(audioId)
+      console.log('🔉 Transcribing with Groq Whisper...')
+      actualQuery = await transcribeAudioMessage(audioBuffer)
+      console.log(`📝 Transcribed text: "${actualQuery}"`)
+      
+      if (!actualQuery || actualQuery.trim() === '') {
+        await sendTextMessage(from, 'I could not hear that properly. Could you please try again?')
+        return NextResponse.json({ ok: true, found: 0 })
+      }
+    }
+
+    if (actualQuery) {
+      // Step: Extract tags from text query with history
+      console.log('📝 Extracting tags from text query:', actualQuery)
+      const history = await getChatHistory(from)
+      tags = await extractProductFromText(actualQuery, history)
     } else if (mediaId) {
       // Step: Download and analyze image
       console.log('📥 Downloading image...')
@@ -70,7 +86,14 @@ export async function POST(req: Request) {
     }
 
     // Step 6: Closing message
-    await sendTextMessage(from, '✨ Want to find another product? Just send a photo!')
+    await sendTextMessage(from, '✨ Want to find another product? Just send a photo, voice note, or tell me what you need!')
+
+    // Chat History Saving
+    if (actualQuery) {
+      const replySummary = `I found ${displayProducts.length} products. E.g., ${displayProducts.map(p => p.title).join(' | ')}`
+      await saveChatMessage(from, 'user', actualQuery)
+      await saveChatMessage(from, 'assistant', replySummary)
+    }
 
     console.log('✅ Search pipeline complete!')
     return NextResponse.json({ ok: true, found: products.length })

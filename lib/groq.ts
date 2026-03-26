@@ -3,6 +3,17 @@ import type { ImageTags } from '@/types'
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
+export async function transcribeAudioMessage(audioBuffer: Buffer): Promise<string> {
+  // Use global File constructor available in Node 20+
+  const audioFile = new File([new Uint8Array(audioBuffer)], 'audio.ogg', { type: 'audio/ogg' })
+  const transcription = await groq.audio.transcriptions.create({
+    file: audioFile,
+    model: 'whisper-large-v3-turbo',
+    response_format: 'text'
+  })
+  return transcription as unknown as string
+}
+
 export async function analyzeProductImage(imageBase64: string): Promise<ImageTags> {
   const response = await groq.chat.completions.create({
     model: 'meta-llama/llama-4-scout-17b-16e-instruct',
@@ -70,7 +81,10 @@ Only the message text, no quotes.`
     `🎉 We received your photo! Here are ${productCount} similar products we found for you:`
 }
 
-export async function extractProductFromText(text: string): Promise<ImageTags | null> {
+export async function extractProductFromText(
+  text: string,
+  history: {role: string, content: string}[] = []
+): Promise<ImageTags | null> {
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     max_tokens: 300,
@@ -92,6 +106,7 @@ Required JSON format:
   "keywords": ["keyword1", "keyword2"]
 }`
       },
+      ...history.map(h => ({ role: h.role as 'user' | 'assistant', content: h.content })),
       {
         role: 'user',
         content: `User message: "${text}"`
