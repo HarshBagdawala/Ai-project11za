@@ -149,7 +149,7 @@ export async function sendProductTemplate(
   customerName: string = 'Customer'
 ): Promise<void> {
   try {
-    const templateName = 'harsh_test'
+    const templateName = process.env.ELEVEN_ZA_TEMPLATE_NAME || 'harsh_test'
 
     console.log('product-imageUrl', product.imageUrl)
     const payload = {
