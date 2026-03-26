@@ -28,7 +28,7 @@ export async function downloadMediaAsBase64(mediaIdOrUrl: string): Promise<strin
     // Set authorization header if it's downloading deeply from Meta Cloud APIs
     const headers: any = {}
     if (downloadUrl.includes('facebook.com') || downloadUrl.includes('whatsapp.net')) {
-       headers['Authorization'] = `Bearer ${apiKey}`
+      headers['Authorization'] = `Bearer ${apiKey}`
     }
 
     const imgRes = await fetch(downloadUrl, { headers })
@@ -144,23 +144,22 @@ export async function sendUrlButton(to: string, url: string, label: string = 'ðŸ
 
 // Send a product result using a 11za Template
 export async function sendProductTemplate(
-  to: string, 
-  product: { title: string, price: string, imageUrl: string, link: string }, 
+  to: string,
+  product: { title: string, price: string, imageUrl: string, link: string },
   customerName: string = 'Customer'
 ): Promise<void> {
   try {
-    const templateName = process.env.ELEVEN_ZA_TEMPLATE_NAME || 'product_result'
-    
+    const templateName = 'harsh_test'
+
     const payload = {
       authToken: getAuthToken(),
       name: customerName,
       sendto: to,
-      originWebsite: 'www.11za.com',
+      originWebsite: 'https://11za.com/',
       templateName: templateName,
       language: 'en',
       buttonValue: product.link,
       myfile: product.imageUrl,
-      myfilename: 'product_image.jpg',
       data: [
         product.title,
         product.price || 'Price on request'
@@ -177,7 +176,7 @@ export async function sendProductTemplate(
       const errorData = await response.text()
       throw new Error(`11za Template API error: ${response.status} ${errorData}`)
     }
-    
+
     const result = await response.json()
     console.log(`âœ… Template sent to ${to}:`, result)
   } catch (error) {
