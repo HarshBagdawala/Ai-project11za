@@ -51,14 +51,14 @@ export async function searchGoogleProducts(tags: ImageTags): Promise<GoogleProdu
 
     // Return top 3 results with valid links and public image URLs only
     return data.shopping
-      .filter((item: any) => 
-        item.link && 
-        item.link.startsWith('http') && 
-        item.imageUrl && 
+      .filter((item: any) =>
+        item.link &&
+        item.link.startsWith('http') &&
+        item.imageUrl &&
         item.imageUrl.startsWith('http') &&
         !item.imageUrl.toLowerCase().includes('.webp')
       )
-      .slice(0, 5)
+      .slice(0, 7)
       .map((item: any) => ({
         title: item.title || 'Product',
         price: item.price || '',
