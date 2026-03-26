@@ -166,7 +166,7 @@ export async function sendProductTemplate(
       ]
     }
 
-    const response = await fetch('https://api.11za.in/apis/sendMessage/sendTemplateMessage', {
+    const response = await fetch('https://api.11za.in/apis/template/sendTemplate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
