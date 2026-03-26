@@ -63,7 +63,7 @@ export async function POST(req: Request) {
     }
 
     // Step 5: Prepare display list
-    const displayProducts = products.slice(0, 7)
+    const displayProducts = products.slice(0, 3)
 
     // Step 4: Send intro message
     const intro = `🛍️ Got your photo! We found *${displayProducts.length}* similar products on Google Shopping:`
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
     // Step 5: Send each product as a separate URL message with details
     for (let i = 0; i < displayProducts.length; i++) {
       const p = displayProducts[i]
-      const emoji = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣'][i] || `${i + 1}.`
+      const emoji = ['1️⃣', '2️⃣', '3️⃣'][i] || `${i + 1}.`
       const msg = [
         `${emoji} *${p.title}*`,
         p.price ? `💰 Price: ${p.price}` : '',
