@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { analyzeProductImage, extractProductFromText } from '@/lib/groq'
-import { downloadMediaAsBase64, sendTextMessage, sendUrlMessage } from '@/lib/elevenZa'
+import { downloadMediaAsBase64, sendProductImage, sendTextMessage, sendUrlMessage } from '@/lib/elevenZa'
 import { searchGoogleProducts } from '@/lib/serper'
 import { delay } from '@/lib/utils'
 import type { ImageTags } from '@/types'
@@ -65,7 +65,12 @@ export async function POST(req: Request) {
         `🔗 ${p.link}`
       ].filter(Boolean).join('\n')
 
-      await sendUrlMessage(from, msg)
+      // Only send image for the first product to keep the chat clean
+      if (i === 0 && p.imageUrl) {
+        await sendProductImage(from, p.imageUrl, msg)
+      } else {
+        await sendUrlMessage(from, msg)
+      }
       await delay(600)
     }
 
