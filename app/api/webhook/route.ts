@@ -74,13 +74,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL
-      if (!appUrl) {
-        console.error('❌ NEXT_PUBLIC_APP_URL is not set!')
-        return NextResponse.json({ ok: true })
-      }
-
-      const baseUrl = appUrl.endsWith('/') ? appUrl.slice(0, -1) : appUrl
+      const baseUrl = req.nextUrl.origin
 
       console.log(`🎙️ Triggering voice search pipeline for ${from}: ${baseUrl}/api/search`)
       fetch(`${baseUrl}/api/search`, {
@@ -97,13 +91,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true })
       }
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL
-      if (!appUrl) {
-        console.error('❌ NEXT_PUBLIC_APP_URL is not set!')
-        return NextResponse.json({ ok: true })
-      }
-
-      const baseUrl = appUrl.endsWith('/') ? appUrl.slice(0, -1) : appUrl
+      const baseUrl = req.nextUrl.origin
 
       console.log(`🚀 Triggering search pipeline for ${from}: ${baseUrl}/api/search`)
       fetch(`${baseUrl}/api/search`, {
@@ -120,12 +108,7 @@ export async function POST(req: NextRequest) {
     } else if (type === 'text' && text) {
       console.log(`💬 Text message from ${from}: ${text}`)
       
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL
-      if (!appUrl) {
-        console.error('❌ NEXT_PUBLIC_APP_URL is not set!')
-        return NextResponse.json({ ok: true })
-      }
-      const baseUrl = appUrl.endsWith('/') ? appUrl.slice(0, -1) : appUrl
+      const baseUrl = req.nextUrl.origin
 
       // Trigger search pipeline for text (it will auto-detect product intent)
       console.log(`🚀 Triggering text-search pipeline for ${from}: ${baseUrl}/api/search`)
