@@ -55,7 +55,13 @@ export async function saveUserIfNotExists(phoneNumber: string): Promise<void> {
     last_active: new Date().toISOString()
   }, { onConflict: 'phone_number' })
 
-  if (error) console.error('Failed to save/upsert user:', error.message)
+  if (error) {
+    if (error.message.includes('schema cache') && error.message.includes('users')) {
+      // Silently ignore if the users table doesn't exist yet
+      return
+    }
+    console.error('Failed to save/upsert user:', error.message)
+  }
 }
 
 export async function saveChatMessage(phoneNumber: string, role: 'user' | 'assistant', content: string): Promise<void> {

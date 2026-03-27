@@ -1,0 +1,5 @@
+❌ FAILED: llama-3.2-11b-vision-preview - The model `llama-3.2-11b-vision-preview` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations for a recommendation on which model to use instead.
+❌ FAILED: llama-3.2-90b-vision-preview - The model `llama-3.2-90b-vision-preview` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations for a recommendation on which model to use instead.
+❌ FAILED: llama-3.2-11b-vision-instruct - The model `llama-3.2-11b-vision-instruct` does not exist or you do not have access to it.
+❌ FAILED: llama-3.2-90b-vision-instruct - The model `llama-3.2-90b-vision-instruct` does not exist or you do not have access to it.
+❌ FAILED: meta-llama/llama-4-scout-17b-16e-instruct - Image must have at least 2 pixels in each dimension
