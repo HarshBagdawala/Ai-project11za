@@ -96,11 +96,7 @@ export async function POST(req: Request) {
         p.link
       ].filter(line => line !== null && line !== undefined).join('\n')
 
-      if (p.imageUrl) {
-        await sendProductImage(from, p.imageUrl, caption)
-      } else {
-        await sendTextMessage(from, caption)
-      }
+      await sendTextMessage(from, caption)
       await delay(600)
     }
 

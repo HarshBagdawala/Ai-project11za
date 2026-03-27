@@ -126,7 +126,8 @@ export async function sendProductImage(
       authToken: getAuthToken(),
       originWebsite: 'https://11za.com/',
       contentType: 'image',
-      mediaUrl: imageUrl,
+      myfile: imageUrl,
+      myfilename: 'product.jpg',
       text: caption
     }
 

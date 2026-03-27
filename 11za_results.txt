@@ -1,0 +1,5 @@
+Result for mediaUrl: 400 {"Message":"The contentType is image! Please select a file","Data":0,"Status":400,"IsSuccess":false}
+Result for file: 400 {"Message":"The contentType is image! Please select a file","Data":0,"Status":400,"IsSuccess":false}
+Result for url: 400 {"Message":"The contentType is image! Please select a file","Data":0,"Status":400,"IsSuccess":false}
+Result for imageUrl: 400 {"Message":"The contentType is image! Please select a file","Data":0,"Status":400,"IsSuccess":false}
+Result for image: 400 {"Message":"The contentType is image! Please select a file","Data":0,"Status":400,"IsSuccess":false}
