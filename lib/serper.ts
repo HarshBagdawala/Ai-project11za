@@ -17,12 +17,18 @@ export async function searchGoogleProducts(tags: ImageTags): Promise<GoogleProdu
 
   // Build a rich search query using all available tags
   const keywordStr = tags.keywords && tags.keywords.length > 0 ? tags.keywords.slice(0, 3).join(' ') : ''
+  // Prioritize exact brand and model if they exist
+  const brandPart = tags.brand ? tags.brand : '';
+  const modelPart = tags.modelName ? tags.modelName : '';
+  
   const query = [
+    brandPart,
+    modelPart,
     tags.color || '',
     tags.style && tags.style !== 'other' ? tags.style : '',
     tags.type || '',
     keywordStr,
-    'buy online India'
+    'buy' // Removing "buy online India" to stop heavily diluting the brand/exact match
   ].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim()
 
   console.log('🔍 Serper search query:', query)

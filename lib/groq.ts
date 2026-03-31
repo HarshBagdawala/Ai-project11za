@@ -31,17 +31,20 @@ export async function analyzeProductImage(imageBase64: string): Promise<ImageTag
           },
           {
             type: 'text',
-            text: `You are a product analysis AI for an Indian e-commerce store.
-Analyze this product image and extract details.
+            text: `You are an expert product image analysis AI for an e-commerce platform.
+CRITICAL INSTRUCTION: The user wants to find the EXACT same product shown in the image, not just a related item.
+Analyze this product image to identify the exact brand, specific model, and unique distinguishing features.
 Return ONLY a valid JSON object with no markdown, no explanation, nothing else.
 
 Required format:
 {
+  "brand": "exact brand name (e.g. Nike, Zara, Apple) or empty string if unknown",
+  "modelName": "exact model name (e.g. Air Force 1, iPhone 14) or empty string if unknown",
   "category": "clothing/footwear/electronics/accessories/home/beauty/other",
   "color": "primary color of the product",
   "type": "specific item name (e.g. kurti, sneakers, watch)",
   "style": "casual/formal/ethnic/sporty/western",
-  "keywords": ["keyword1", "keyword2", "keyword3", "keyword4", "keyword5"]
+  "keywords": ["highly specific visual feature 1", "specific feature 2", "specific feature 3"]
 }`
           }
         ]
@@ -97,6 +100,8 @@ Analyze the user message and determine if they want to SEARCH/BUY a product, OR 
 
 If they WANT TO SEARCH FOR A PRODUCT, extract the details and return ONLY a valid JSON object:
 {
+  "brand": "brand name if mentioned, else empty string",
+  "modelName": "model name if mentioned, else empty string",
   "category": "clothing/footwear/electronics/accessories/home/beauty/other",
   "color": "primary color if mentioned",
   "type": "specific item name",

@@ -29,6 +29,8 @@ export interface ImageTags {
   color: string
   type: string
   style: string
+  brand?: string
+  modelName?: string
   keywords: string[]
   minPrice?: number
   maxPrice?: number
