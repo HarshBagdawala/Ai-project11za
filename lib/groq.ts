@@ -83,7 +83,7 @@ Only the message text, no quotes.`
 
 export async function extractProductFromText(
   text: string,
-  history: {role: string, content: string}[] = []
+  history: { role: string, content: string }[] = []
 ): Promise<ImageTags | { chatReply: string } | null> {
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
@@ -147,7 +147,7 @@ export interface LocalizedMessages {
 const defaultMessages: LocalizedMessages = {
   intro: "🛍️ I understood your request! We found *{count}* similar products:",
   noMatch: "😔 Sorry! We could not find any matching product. Please try again with another query/photo 📸",
-  closing: "✨ Want to find another product? Just send a photo, voice note, or tell me what you need!",
+  closing: "✨ Want to find another product? Just send a photo, or tell me what you need!",
   priceLabel: "Price:",
   sourceLabel: "Source:",
   notUnderstood: "I could not hear that properly. Could you please try again?"
@@ -169,7 +169,7 @@ Return ONLY a valid JSON object matching this structure:
 {
   "intro": "🛍️ I understood your request! We found *{count}* similar products:",
   "noMatch": "😔 Sorry! We could not find any matching product. Please try again with another query/photo 📸",
-  "closing": "✨ Want to find another product? Just send a photo, voice note, or tell me what you need!",
+  "closing": "✨ Want to find another product? Just send a photo, or tell me what you need!",
   "priceLabel": "Price:",
   "sourceLabel": "Source:",
   "notUnderstood": "I could not understand that properly. Could you please try again?"
